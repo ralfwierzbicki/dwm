@@ -1,0 +1,2 @@
+#!/bin/sh
+exec PYTHONBIN LOOK_HERE/cb-editor

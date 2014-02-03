@@ -1,0 +1,20 @@
+Patch-up Roadmap:
+	TODO: Set up destroy function for data lying around
+	FIXME: Viewport list doesn't detect viewports if they are the default number?
+	TODO: sort these sources ><
+	TODO: Reduce memleaks related to windowlist & viewportlist
+	TODO: Add ability to place files inline menu? (match filename up with appropriately split chunks?)
+	TODO: Integrate compiz settings
+	TODO: Add ability to write custom filter for recent documents
+	TODO: Add compile flags for further tweakability (disabling/enabling certain features)
+	TODO: Run pipemenu input as own menu (be sure to auto insert menu tags if it doesn't make its own menu)
+	TODO: Make this plugin able
+
+    Difficult TODO: Add configuration for menu icon size (need to register icon size for 
+compatibility? Also needs recent documents rewrite)
+	Difficult TODO: Make the GUI for the upcoming daemon configuration
+
+    Possible TODO: add autocomplete for commands
+    Possible TODO: Variable expansion according to ~/.bashrc? (either tedious regex or just append sh -c '|\' to every command)
+	Possible TODO: Make an Apwal-esque mode if requested
+	TODO: Add some columns to the cache

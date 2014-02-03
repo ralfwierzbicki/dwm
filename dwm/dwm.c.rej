@@ -1,0 +1,22 @@
+--- dwm.c	Thu Dec 02 10:16:47 2010 +0000
++++ dwm.c	Mon Dec 13 08:18:03 2010 -0500
+@@ -57,8 +57,8 @@
+ /* enums */
+ enum { CurNormal, CurResize, CurMove, CurLast };        /* cursor */
+ enum { ColBorder, ColFG, ColBG, ColLast };              /* color */
+-enum { NetSupported, NetWMName, NetWMState,
+-       NetWMFullscreen, NetLast };                      /* EWMH atoms */
++enum { NetSupported, NetWMName, NetWMState, NetWMFullscreen,
++    NetNumberOfDesktops, NetCurrentDesktop, NetLast };  /* EWMH atoms */
+ enum { WMProtocols, WMDelete, WMState, WMLast };        /* default atoms */
+ enum { ClkTagBar, ClkLtSymbol, ClkStatusText, ClkWinTitle,
+        ClkClientWin, ClkRootWin, ClkLast };             /* clicks */
+@@ -1540,6 +1556,8 @@
+ 	netatom[NetWMName] = XInternAtom(dpy, "_NET_WM_NAME", False);
+ 	netatom[NetWMState] = XInternAtom(dpy, "_NET_WM_STATE", False);
+ 	netatom[NetWMFullscreen] = XInternAtom(dpy, "_NET_WM_STATE_FULLSCREEN", False);
++	netatom[NetNumberOfDesktops] = XInternAtom(dpy, "_NET_NUMBER_OF_DESKTOPS", False);
++	netatom[NetCurrentDesktop] = XInternAtom(dpy, "_NET_CURRENT_DESKTOP", False);
+ 	/* init cursors */
+ 	cursor[CurNormal] = XCreateFontCursor(dpy, XC_left_ptr);
+ 	cursor[CurResize] = XCreateFontCursor(dpy, XC_sizing);
