@@ -20,6 +20,7 @@
  *
  * To understand everything else, start reading main().
  */
+#include <assert.h>
 #include <errno.h>
 #include <locale.h>
 #include <stdarg.h>
@@ -28,6 +29,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <libgen.h>
+#include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <X11/cursorfont.h>
@@ -958,10 +961,9 @@ createmon(void)
 		m->pertag->showbars[i] = m->showbar;
 	}
 	/* startup notifications */
-	/*
 	if (snDisplay != NULL)
 		m->snContext = sn_monitor_context_new (snDisplay, screen, sn_event_func, NULL, NULL);
-*/
+
 	return m;
 }
 
@@ -1184,7 +1186,7 @@ drawline(unsigned long col[ColLast])
 
 	gcv.foreground = col[ColFG];
 	XChangeGC(dpy, dc.gc, GCForeground, &gcv);
-	XDrawLine(dpy, dc.drawable, dc.gc, dc.x, dc.y, dc.x, dc.y + (dc.font.ascent + dc.font.descent + 2));
+	XDrawLine(dpy, dc.drawable, dc.gc, dc.x, dc.y, dc.x, dc.y + (dc.font.ascent + bh)); // static bar height - dc.font.descent + 2));
 }
 
 void
@@ -1276,6 +1278,9 @@ drawtext(const char *text, unsigned long col[ColLast], Bool invert, Bool istask,
 	pango_layout_set_text (dc.font.layout, buf, -1); //len * PANGO_SCALE);
 	pango_layout_get_extents(dc.font.layout, 0, &r);
 	pango_layout_set_width (dc.font.layout, maxwidth * PANGO_SCALE);
+	pango_layout_set_single_paragraph_mode (dc.font.layout, TRUE);
+	pango_layout_set_ellipsize (dc.font.layout, PANGO_ELLIPSIZE_END);
+	pango_layout_set_alignment (dc.font.layout, PANGO_ALIGN_CENTER);
 
 	if (istask && !invert)
 	{
@@ -2351,7 +2356,7 @@ setup(void)
 	initfont(font);
 	sw = DisplayWidth(dpy, screen);
 	sh = DisplayHeight(dpy, screen);
-	bh = dc.h = dc.font.height + 2;
+	bh = dc.h = 22; //dc.font.height + 2;
 	updategeom();
 	/* init atoms */
 	wmatom[WMProtocols] = XInternAtom(dpy, "WM_PROTOCOLS", False);
@@ -2450,6 +2455,8 @@ sigchld(int unused)
 	while (0 < waitpid(-1, NULL, WNOHANG));
 }
 
+#define SPAWN_CWD_DELIM " []{}()<>\"':"
+
 void
 spawn(const Arg *arg)
 {
@@ -2457,6 +2464,38 @@ spawn(const Arg *arg)
 	{
 		if (dpy)
 			close(ConnectionNumber(dpy));
+                if(selmon->sel) {
+                        const char* const home = getenv("HOME");
+                        assert(home && strchr(home, '/'));
+                        const size_t homelen = strlen(home);
+                        char *cwd, *pathbuf = NULL;
+                        struct stat statbuf;
+ 
+                        cwd = strtok(selmon->sel->name, SPAWN_CWD_DELIM);
+                        /* NOTE: strtok() alters selmon->sel->name in-place,
+                         * but that does not matter because we are going to
+                         * exec() below anyway; nothing else will use it */
+                        while(cwd) {
+                                if(*cwd == '~') { /* replace ~ with $HOME */
+                                        if(!(pathbuf = malloc(homelen + strlen(cwd)))) /* ~ counts for NULL term */
+                                                die("fatal: could not malloc() %u bytes\n", homelen + strlen(cwd));
+                                        strcpy(strcpy(pathbuf, home) + homelen, cwd + 1);
+                                        cwd = pathbuf;
+                                }
+ 
+                                if(strchr(cwd, '/') && !stat(cwd, &statbuf)) {
+                                        if(!S_ISDIR(statbuf.st_mode))
+                                                cwd = dirname(cwd);
+ 
+                                        if(!chdir(cwd))
+                                                break;
+                                }
+ 
+                                cwd = strtok(NULL, SPAWN_CWD_DELIM);
+                        }
+ 
+                        free(pathbuf);
+                }
 		setsid();
 		execvp(((char **)arg->v)[0], (char **)arg->v);
 		fprintf(stderr, "dwm: execvp %s", ((char **)arg->v)[0]);

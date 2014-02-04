@@ -30,15 +30,15 @@ static const char *mute[]       = { "amixer", "-q", "set", "Master", "toggle", N
 
 /* tagging */
 static const char *tags[] = {
-	" 1 \357\200\237",
-	" 2 \357\200\237",
-	" 3 \357\200\237",
-	" 4 \357\200\237",
-	" 5 \357\200\237",
-	" 6 \357\200\237",
-	" 7 \357\200\237",
-	" 8 \357\200\237",
-	" 9 \357\200\237",
+	"1",
+	"2\356\235\206",
+	"3\356\235\206",
+	"4\356\235\206",
+	"5\356\235\206",
+	"6\356\235\206",
+	"7\356\235\206",
+	"8\356\235\206",
+	"(9)",
 };
 
 static const Rule rules[] = {
@@ -80,7 +80,7 @@ static const Layout layouts[] = {
 
 /* commands */
 static const char *dmenucmd[] = { "dmenu_run", "-fn", font, "-nb", normbgcolor, "-nf", normfgcolor, "-sb", selbgcolor, "-sf", selfgcolor, "-hist", "/home/ralf/.dmenu_history", NULL };
-static const char *termcmd[]  = { "xfce4-terminal", NULL };
+static const char *termcmd[]  = { "gnome-terminal", NULL };
 //static const char *quitcmd[]  = { "gnome-session-quit", "--logout", NULL };
 static const char *deskmenu[] = { "compiz-boxmenu", NULL };
 

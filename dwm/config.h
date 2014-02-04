@@ -3,7 +3,7 @@
 #include <X11/XF86keysym.h>
 
 /* appearance */
-static const char font[]            = "Terminus 12";
+static const char font[]            = "Ohsnap.Icons 8";
 static const char normbordercolor[] = "#444444";
 static const char normbgcolor[]     = "#222222";
 static const char normfgcolor[]     = "#bbbbbb";
@@ -30,15 +30,15 @@ static const char *mute[]       = { "amixer", "-q", "set", "Master", "toggle", N
 
 /* tagging */
 static const char *tags[] = {
-	" 1",
-	" 2",
-	" 3",
-	" 4",
-	" 5",
-	" 6",
-	" 7",
-	" 8",
-	" 9",
+	"1 \303\244",
+	"2",
+	"3",
+	"4",
+	"5",
+	"6",
+	/*"7",
+	"8",
+	"9",*/
 };
 
 static const Rule rules[] = {
@@ -80,7 +80,7 @@ static const Layout layouts[] = {
 
 /* commands */
 static const char *dmenucmd[] = { "dmenu_run", "-fn", font, "-nb", normbgcolor, "-nf", normfgcolor, "-sb", selbgcolor, "-sf", selfgcolor, "-hist", "/home/ralf/.dmenu_history", NULL };
-static const char *termcmd[]  = { "xfce4-terminal", NULL };
+static const char *termcmd[]  = { "gnome-terminal", NULL };
 //static const char *quitcmd[]  = { "gnome-session-quit", "--logout", NULL };
 static const char *deskmenu[] = { "compiz-boxmenu", NULL };
 
@@ -111,7 +111,7 @@ static Key keys[] = {
 	{ MODKEY|ShiftMask,             XK_comma,  tagmon,         {.i = -1 } },
 	{ MODKEY|ShiftMask,             XK_period, tagmon,         {.i = +1 } },
 	{ 0, XF86XK_AudioLowerVolume,              spawn,          { .v = volumedown } },
-	{ 0, XF86XK_AudioRaiseVolume,              spawn,          { .v = volumeup } },
+	{ 0, XF86XK_AudioRaiseVolume,              spawn,          { .v = volumeup } }, 
         { 0, XF86XK_AudioMute,                     spawn,          { .v = mute } },
 	TAGKEYS(                        XK_1,                      0)
 	TAGKEYS(                        XK_2,                      1)
