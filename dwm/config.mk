@@ -16,7 +16,7 @@ XINERAMAFLAGS = -DXINERAMA
 
 # includes and libs
 INCS = -I. -I/usr/include -I${X11INC} `pkg-config --cflags xft pango pangoxft` `pkg-config --cflags libstartup-notification-1.0`
-LIBS = -L/usr/lib -lc -L${X11LIB} -lX11 ${XINERAMALIBS} `pkg-config --libs xft pango pangoxft` `pkg-config --libs libstartup-notification-1.0`
+LIBS = -L/usr/lib -lc -lm -L${X11LIB} -lX11 ${XINERAMALIBS} `pkg-config --libs xft pango pangoxft` `pkg-config --libs libstartup-notification-1.0`
 
 # flags
 CPPFLAGS = -DVERSION=\"${VERSION}\" ${XINERAMAFLAGS}

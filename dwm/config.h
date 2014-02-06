@@ -3,7 +3,7 @@
 #include <X11/XF86keysym.h>
 
 /* appearance */
-static const char font[]            = "Ohsnap.Icons 8";
+static const char font[]            = "Terminus 12";
 static const char normbordercolor[] = "#444444";
 static const char normbgcolor[]     = "#222222";
 static const char normfgcolor[]     = "#bbbbbb";
@@ -30,15 +30,15 @@ static const char *mute[]       = { "amixer", "-q", "set", "Master", "toggle", N
 
 /* tagging */
 static const char *tags[] = {
-	"1 \303\244",
-	"2",
-	"3",
-	"4",
+	"1 mail",
+	"2 \356\236\232",
+	"3 \356\235\266",
+	"4 ",
 	"5",
 	"6",
-	/*"7",
+	"7",
 	"8",
-	"9",*/
+	"9",
 };
 
 static const Rule rules[] = {
@@ -133,6 +133,9 @@ static Button buttons[] = {
 	{ ClkLtSymbol,          0,              Button3,        setlayout,      {.v = &layouts[2]} },
 	{ ClkWinTitle,          0,              Button3,        killclient,     {0} },
 	{ ClkStatusText,        0,              Button3,        spawn,          {.v = deskmenu } },
+	{ ClkClientWin,		0,		Button1,	raiseclient,	{0} },
+	{ ClkClientWin,         0,              Button2,        raiseclient,    {0} },
+	{ ClkClientWin,         0,              Button3,        raiseclient,    {0} },
 	{ ClkClientWin,         MODKEY,         Button1,        movemouse,      {0} },
 	{ ClkClientWin,         MODKEY,         Button2,        togglefloating, {0} },
 	{ ClkClientWin,         MODKEY,         Button3,        resizemouse,    {0} },
