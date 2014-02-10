@@ -1828,11 +1828,7 @@ raiseclient(const Arg *arg)
 		return;
 
 	XAllowEvents(dpy, ReplayPointer, CurrentTime);
-<<<<<<< HEAD
-	if (!selmon->lt[selmon->sellt]->arrange || selmon->sel->isfloating)
-=======
 	if (selmon->sel->isfloating || !selmon->sel->mon->lt[selmon->sel->mon->sellt]->arrange)
->>>>>>> f47ebd57edb8fa1c16883e576207d1ae3d771d76
 		XRaiseWindow(dpy, selmon->sel->win);
 	XFlush(dpy);
 	focus(selmon->sel);
