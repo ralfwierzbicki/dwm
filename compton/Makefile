@@ -83,11 +83,10 @@ endif
 COMPTON_VERSION ?= git-$(shell git describe --always --dirty)-$(shell git log -1 --date=short --pretty=format:%cd)
 CFG += -DCOMPTON_VERSION="\"$(COMPTON_VERSION)\""
 
-#LDFLAGS ?= -Wl,--as-needed -Wl,-O1 -Wl,--hash-style=gnu -Wl,--sort-common ${CFLAGS}
-#-Wl,-O1 -Wl,--as-needed
+LDFLAGS ?= -Wl,--as-needed -Wl,-O1 -Wl,--hash-style=gnu -Wl,--sort-common -O6 -pipe -mtune=native -march=native -fomit-frame-pointer -flto=4 -fuse-linker-plugin
 
 ifeq "$(CFG_DEV)" ""
-  CFLAGS ?= -DNDEBUG -O2 -D_FORTIFY_SOURCE=2 -O2 -pipe -mtune=native -march=native -fomit-frame-pointer -flto=4 -fuse-linker-plugin
+  CFLAGS ?= -DNDEBUG -D_FORTIFY_SOURCE=2 -O6 -pipe -mtune=native -march=native -fomit-frame-pointer -flto=4 -fuse-linker-plugin
 else
   CC = clang
   export LD_ALTEXEC = /usr/bin/ld.gold
@@ -96,8 +95,6 @@ else
   CFLAGS += -ggdb -Wshadow
   # CFLAGS += -Weverything -Wno-disabled-macro-expansion -Wno-padded -Wno-gnu
 endif
-
-LDFLAGS ?= -Wl,--as-needed -Wl,-O1 -Wl,--hash-style=gnu -Wl,--sort-common ${CFLAGS}
 
 LIBS += $(shell pkg-config --libs $(PACKAGES))
 INCS += $(shell pkg-config --cflags $(PACKAGES))
