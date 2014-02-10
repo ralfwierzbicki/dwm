@@ -23,17 +23,17 @@ static const Bool showsystray       = True;     /* False means no systray */
 static const Bool showbar           = True;     /* False means no bar */
 static const Bool topbar            = True;     /* False means bottom bar */
 static const Bool statusmarkup      = True;     /* True means use pango markup in status message */
-
+static const unsigned int bargap    = 10;
 static const char *volumedown[] = { "amixer", "-q", "set", "Master", "2%-", "unmute", NULL };
 static const char *volumeup[]   = { "amixer", "-q", "set", "Master", "2%+", "unmute", NULL };
 static const char *mute[]       = { "amixer", "-q", "set", "Master", "toggle", NULL };
 
 /* tagging */
 static const char *tags[] = {
-	"1 mail",
-	"2 \356\236\232",
-	"3 \356\235\266",
-	"4 ",
+	"1",
+	"2",
+	"3",
+	"4",
 	"5",
 	"6",
 	"7",
@@ -110,9 +110,9 @@ static Key keys[] = {
 	{ MODKEY,                       XK_period, focusmon,       {.i = +1 } },
 	{ MODKEY|ShiftMask,             XK_comma,  tagmon,         {.i = -1 } },
 	{ MODKEY|ShiftMask,             XK_period, tagmon,         {.i = +1 } },
-	{ 0, XF86XK_AudioLowerVolume,              spawn,          { .v = volumedown } },
-	{ 0, XF86XK_AudioRaiseVolume,              spawn,          { .v = volumeup } }, 
-        { 0, XF86XK_AudioMute,                     spawn,          { .v = mute } },
+	//{ 0, XF86XK_AudioLowerVolume,              spawn,          { .v = volumedown } },
+	//{ 0, XF86XK_AudioRaiseVolume,              spawn,          { .v = volumeup } }, 
+        //{ 0, XF86XK_AudioMute,                     spawn,          { .v = mute } },
 	TAGKEYS(                        XK_1,                      0)
 	TAGKEYS(                        XK_2,                      1)
 	TAGKEYS(                        XK_3,                      2)

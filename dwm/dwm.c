@@ -40,6 +40,7 @@
 #include <X11/Xlib.h>
 #include <X11/Xproto.h>
 #include <X11/Xutil.h>
+#include <X11/XKBlib.h>
 #include <X11/Xft/Xft.h>
 #include <pango/pango.h>
 #include <pango/pangoxft.h>
@@ -255,7 +256,9 @@ static void drawbar(Monitor *m);
 static void drawbars(void);
 static void drawline(unsigned long col[ColLast]);
 static void drawsquare(Bool filled, Bool empty, Bool invert, unsigned long col[ColLast]);
-static int drawtext(const char *text, unsigned long col[ColLast], Bool invert, Bool istask, Monitor *m);
+static int drawtitle (const char *text, unsigned long col[ColLast], Bool highlight, Monitor *m, Bool first);
+static int drawtags (Monitor *m);
+static int drawstatus (unsigned long col[ColLast]);
 static void enternotify(XEvent *e);
 static void expose(XEvent *e);
 static void focus(Client *c);
@@ -605,11 +608,12 @@ buttonpress(XEvent *e)
 			click = ClkWinTitle;
 		}
 	}
-	else if ((c = wintoclient(ev->window))) 
+	else if ((c = wintoclient(ev->window)))
 	{
 		click = ClkClientWin;
 	}
-	for (i = 0; i < LENGTH(buttons); i++) {
+	for (i = 0; i < LENGTH(buttons); i++)
+	{
 		if (click == buttons[i].click && buttons[i].func && buttons[i].button == ev->button
 		        && CLEANMASK(buttons[i].mask) == CLEANMASK(ev->state))
 			buttons[i].func((click == ClkTagBar || click == ClkWinTitle) && buttons[i].arg.i == 0 ? &arg : &buttons[i].arg);
@@ -809,7 +813,7 @@ configurenotify(XEvent *e)
 
 	if (ev->window == root)
 	{
-		dirty = (sw != ev->width);
+		dirty = (sw != ev->width || sh != ev->height);
 		sw = ev->width;
 		sh = ev->height;
 		if (updategeom() || dirty)
@@ -1048,11 +1052,10 @@ dirtomon(int dir)
 void
 drawbar(Monitor *m)
 {
-	int x, ow, mw = 0, extra, tw;
-	unsigned int i, n = 0, occ = 0, urg = 0;
+
+	unsigned int n = 0, occ = 0, urg = 0;
 	unsigned long *col;
-	Client *c, *firstvis, *lastvis = NULL;
-	DC seldc;
+	Client *c, *firstvis = NULL;
 
 	resizebarwin(m);
 	for (c = m->clients; c; c = c->next)
@@ -1065,66 +1068,78 @@ drawbar(Monitor *m)
 	}
 	m->visclients = n;
 	dc.x = 0;
+	dc.tagsw = drawtags (m);
+	/*
 	for (i = 0; i < LENGTH(tags); i++)
 	{
-		//dc.w = TEXTW(tags[i]);
-		col = m->tagset[m->seltags] & 1 << i ? dc.sel : dc.norm;
-		dc.w = drawtext(tags[i], col, urg & 1 << i, False, m);
-		drawsquare(m == selmon && selmon->sel && selmon->sel->tags & 1 << i,
-		           occ & 1 << i, urg & 1 << i, col);
-		dc.x += dc.w;
+	    dc.w = TEXTW(tags[i]);
+	    col = m->tagset[m->seltags] & 1 << i ? dc.sel : dc.norm;
+	    dc.w = drawtext(tags[i], col, urg & 1 << i, False, m);
+	    drawsquare(m == selmon && selmon->sel && selmon->sel->tags & 1 << i,
+	               occ & 1 << i, urg & 1 << i, col);
+	    dc.x += dc.w;
 	}
+	*/
 	//dc.w = blw = TEXTW(m->ltsymbol);
+	/*
 	dc.w = blw = drawtext(m->ltsymbol, dc.norm, False, False, m);
 	dc.x += dc.w;
-	x = dc.x;
-	dc.tagsw = dc.x;
-
-	if (m == selmon) {
-		if (showsystray) {
+	dc.tagsw += dc.w;
+	*/
+	if (m == selmon)
+	{
+		if (showsystray)
+		{
 			dc.systrayw = getsystraywidth();
-		} else {
+		}
+		else
+		{
 			dc.systrayw = 0;
 		}
 
-		dc.statusw = drawstatus (stext, dc.norm);
+		dc.statusw = drawstatus (dc.norm);
 		dc.x = dc.tagsw;
 	}
-	//col = m == selmon ? dc.sel : dc.norm;
-        for (c = m->clients; c && !ISVISIBLE(c); c = c->next);
-	        firstvis = c;
+	col = m == selmon ? dc.sel : dc.norm;
+	for (c = m->clients; c && !ISVISIBLE(c); c = c->next);
+	firstvis = c;
 
-	for (c = m->clients; c; c = c->next) {
-		if (ISVISIBLE(c)) {
-			if (m->sel == c) {
+	for (c = m->clients; c; c = c->next)
+	{
+		if (ISVISIBLE(c))
+		{
+			if (m->sel == c)
+			{
 				drawsquare(m->sel->isfixed, m->sel->isfloating, True, col);
 				dc.w = drawtitle(c->name, col, True, m, c == firstvis ? True : False);
-			} else {
+			}
+			else
+			{
 				dc.w = drawtitle(c->name, col, False, m, c == firstvis ? True : False);
 			}
 		}
 	}
 	/*
-	if (m == selmon && 1 != 1)  status is only drawn on selected monitor 
+	if (m == selmon && 1 != 1)  status is only drawn on selected monitor
 	{
-		dc.w = TEXTW(stext);
-		dc.x = m->ww - dc.w;
-		if (showsystray && m == selmon)
-		{
-			dc.x -= getsystraywidth();
-		}
-		if (dc.x < x)
-		{
-			dc.x = x;
-			dc.w = m->ww - x;
-		}
-		m->titlebarend = dc.x;
-		drawtext(stext, dc.norm, False, False, m);
+	    dc.w = TEXTW(stext);
+	    dc.x = m->ww - dc.w;
+	    if (showsystray && m == selmon)
+	    {
+	        dc.x -= getsystraywidth();
+	    }
+	    if (dc.x < x)
+	    {
+	        dc.x = x;
+	        dc.w = m->ww - x;
+	    }
+	    m->titlebarend = dc.x;
+	    drawtext(stext, dc.norm, False, False, m);
 	}
 	else
 	{
-		dc.x = m->ww;
-		m->titlebarbegin = dc.x;
+	    dc.x = m->ww;
+	    m->titlebarbegin = dc.x;
 	}
 
 	for (c = m->clients; c && !ISVISIBLE(c); c = c->next);
@@ -1136,65 +1151,65 @@ drawbar(Monitor *m)
 
 	if (n > 0)
 	{
-		mw = dc.w / n;
-		extra = 0;
-		seldc = dc;
-		i = 0;
+	    mw = dc.w / n;
+	    extra = 0;
+	    seldc = dc;
+	    i = 0;
 
-		while (c)
-		{
-			lastvis = c;
-			//tw = TEXTW(c->name);
-			if (tw < mw) extra += (mw - tw); else i++;
-			for (c = c->next; c && !ISVISIBLE(c); c = c->next);
-		}
+	    while (c)
+	    {
+	        lastvis = c;
+	        //tw = TEXTW(c->name);
+	        if (tw < mw) extra += (mw - tw); else i++;
+	        for (c = c->next; c && !ISVISIBLE(c); c = c->next);
+	    }
 
-		//if (i > 0) mw += extra / i;
+	    //if (i > 0) mw += extra / i;
 
-		c = firstvis;
-		x = dc.x;
+	    c = firstvis;
+	    x = dc.x;
 	}
 	m->titlebarbegin = dc.x;
 	while (dc.w > bh)
 	{
-		if (c)
-		{
-			ow = dc.w;
-			tw = TEXTW(c->name);
-			dc.w = MIN(ow, tw);
+	    if (c)
+	    {
+	        ow = dc.w;
+	        tw = TEXTW(c->name);
+	        dc.w = MIN(ow, tw);
 
-			if (dc.w > mw) dc.w = mw;
-			if (m->sel == c) seldc = dc;
-			if (c == lastvis) dc.w = ow;
+	        if (dc.w > mw) dc.w = mw;
+	        if (m->sel == c) seldc = dc;
+	        if (c == lastvis) dc.w = ow;
 
-			if (c == m->sel)
-			{
-				dc.w = drawtitle(c->name, col, True, m);
-			}
-			else
-			{
-				dc.w = drawtitle(c->name, col, True, m);
-			}
+	        if (c == m->sel)
+	        {
+	            dc.w = drawtitle(c->name, col, True, m);
+	        }
+	        else
+	        {
+	            dc.w = drawtitle(c->name, col, True, m);
+	        }
 
-			//if (c != firstvis) drawline(col);
-			drawsquare(c->isfixed, c->isfloating, False, col);
+	        //if (c != firstvis) drawline(col);
+	        drawsquare(c->isfixed, c->isfloating, False, col);
 
-			dc.x += dc.w;
-			dc.w = ow - dc.w;
-			for (c = c->next; c && !ISVISIBLE(c); c = c->next);
-		}
-		else
-		{
-			dc.w = drawtext(NULL, dc.norm, False, False, m);
-			break;
-		}
+	        dc.x += dc.w;
+	        dc.w = ow - dc.w;
+	        for (c = c->next; c && !ISVISIBLE(c); c = c->next);
+	    }
+	    else
+	    {
+	        dc.w = drawtext(NULL, dc.norm, False, False, m);
+	        break;
+	    }
 	}
 
 	if (m == selmon && m->sel && ISVISIBLE(m->sel))
 	{
-		dc = seldc;
-		dc.w = drawtext(m->sel->name, col, False, False, m);
-		drawsquare(m->sel->isfixed, m->sel->isfloating, True, col);
+	    dc = seldc;
+	    dc.w = drawtext(m->sel->name, col, False, False, m);
+	    drawsquare(m->sel->isfixed, m->sel->isfloating, True, col);
 	}
 	*/
 
@@ -1236,122 +1251,32 @@ drawsquare(Bool filled, Bool empty, Bool invert, unsigned long col[ColLast])
 }
 
 int
-drawtitle (const char *text, unsigned long col[ColLast], Bool highlight, Monitor *m, Bool first) {
+drawtitle (const char *text, unsigned long col[ColLast], Bool highlight, Monitor *m, Bool first)
+{
 	char *buf = NULL;
-        PangoAttrList  *attrList = NULL;
-        PangoAttribute *boldf = NULL;
-        GError *error = NULL;
-        PangoRectangle r;
-        int maxwidth = 0;
+	PangoAttrList  *attrList = NULL;
+	PangoAttribute *boldf = NULL;
+	GError *error = NULL;
+	PangoRectangle r;
+	int maxwidth = 0;
 	int x, y, h;
+
 
 	if (first)
 		dc.x = dc.tagsw;
-        h = dc.font.ascent + dc.font.descent;
-        y = dc.y + (dc.h / 2) - (h / 2);
-        x = dc.x + (h / 2);
-
-	if (highlight) {
-		XSetForeground(dpy, dc.gc, dc.sel[ColTaskBG]);
-		boldf = pango_attr_weight_new (PANGO_WEIGHT_BOLD);
-	} else {
-		XSetForeground(dpy, dc.gc, dc.norm[ColTaskBG]);
-	}
-
-        if (!pango_parse_markup (text, -1, 0, &attrList, &buf, NULL, &error))
-        {
-                if (error)
-                        g_error_free (error);
-                buf = g_markup_escape_text (text, -1);
-        }
-        if (highlight && attrList)
-        {
-                pango_attr_list_change (attrList, boldf);
-        }
-
-	if (m->visclients)
-	maxwidth = (m->mw - dc.tagsw - dc.systrayw - dc.statusw)  / m->visclients;
-        pango_layout_set_attributes(dc.font.layout, attrList);
-        pango_layout_set_text (dc.font.layout, buf, -1);
-        pango_layout_set_single_paragraph_mode (dc.font.layout, TRUE);
-        pango_layout_set_ellipsize (dc.font.layout, PANGO_ELLIPSIZE_END);
-        pango_layout_set_alignment (dc.font.layout, PANGO_ALIGN_CENTER);
-        pango_layout_set_width (dc.font.layout, maxwidth * PANGO_SCALE);
-        pango_layout_get_extents(dc.font.layout, 0, &r);
-
-	XFillRectangle(dpy, dc.drawable, dc.gc, dc.x, dc.y, maxwidth, dc.h);
-
-        if (highlight)
-        {
-                pango_xft_render_layout(dc.xft.drawable, dc.xft.sel + ColTaskFG,
-                                        dc.font.layout, x * PANGO_SCALE, y * PANGO_SCALE);
-        }
-        else
-        {
-                pango_xft_render_layout(dc.xft.drawable, dc.xft.norm + ColTaskFG,
-                                        dc.font.layout, x * PANGO_SCALE, y * PANGO_SCALE);
-        }
-        free (buf);
-	if (boldf)
-        	pango_attribute_destroy (boldf);
-        pango_layout_set_attributes(dc.font.layout, NULL);
-	dc.x = dc.x + maxwidth;
-        return (int) round (maxwidth);
-}
-
-int drawstatus (unsigned long col[ColLast]) {
-	if (strlen (stext) == 0) return 0;
-	XSetForeground(dpy, dc.gc, dc.norm[ColBG]);
-	int x, y, h;
-        char *buf = NULL;
-        PangoAttrList  *attrList = NULL;
-        GError *error = NULL;
-        PangoRectangle r;
-
-        h = dc.font.ascent + dc.font.descent;
-        y = dc.y + (dc.h / 2) - (h / 2);
-        x = dc.x + (h / 2);
-
-	x = selmon->mw - dc.systrayw;
-
-	if (!pango_parse_markup (stext, -1, 0, &attrList, &buf, NULL, &error))
-        {
-                if (error)
-                        g_error_free (error);
-                buf = g_markup_escape_text (stext, -1);
-        }
-
-        pango_layout_set_attributes(dc.font.layout, attrList);
-        pango_layout_set_text (dc.font.layout, buf, -1);
-        pango_layout_get_extents(dc.font.layout, 0, &r);
-	
-	x = x - r.width / PANGO_SCALE;
-
-        XFillRectangle(dpy, dc.drawable, dc.gc, x, dc.y, r.width / PANGO_SCALE, dc.h);
-        pango_xft_render_layout(dc.xft.drawable, dc.xft.norm + ColFG,
-                        dc.font.layout, x * PANGO_SCALE, y * PANGO_SCALE);
-        free (buf);
-        pango_layout_set_attributes(dc.font.layout, NULL);
-        return (int) round (r.width/ PANGO_SCALE);
-}
-
-int
-drawtext(const char *text, unsigned long col[ColLast], Bool invert, Bool istask, Monitor *m)
-{
-	int x, y, h;
-	char *buf = NULL;
-	PangoAttrList  *attrList = NULL;
-	GError *error = NULL;
-	PangoRectangle r;
-	
 	h = dc.font.ascent + dc.font.descent;
 	y = dc.y + (dc.h / 2) - (h / 2);
 	x = dc.x + (h / 2);
 
-	XSetForeground(dpy, dc.gc, col[invert ? ColFG : ColBG]);
-
-	if (!text)
-		return -1;
+	if (highlight)
+	{
+		XSetForeground(dpy, dc.gc, dc.sel[ColTaskBG]);
+		boldf = pango_attr_weight_new (PANGO_WEIGHT_BOLD);
+	}
+	else
+	{
+		XSetForeground(dpy, dc.gc, dc.norm[ColTaskBG]);
+	}
 
 	if (!pango_parse_markup (text, -1, 0, &attrList, &buf, NULL, &error))
 	{
@@ -1359,21 +1284,161 @@ drawtext(const char *text, unsigned long col[ColLast], Bool invert, Bool istask,
 			g_error_free (error);
 		buf = g_markup_escape_text (text, -1);
 	}
+	if (highlight && attrList)
+	{
+		pango_attr_list_change (attrList, boldf);
+	}
+
+	if (m->visclients)
+		maxwidth = (m->mw - dc.tagsw - dc.systrayw - dc.statusw)  / m->visclients;
+	pango_layout_set_attributes(dc.font.layout, attrList);
+	pango_layout_set_text (dc.font.layout, buf, -1);
+	pango_layout_set_single_paragraph_mode (dc.font.layout, TRUE);
+	pango_layout_set_ellipsize (dc.font.layout, PANGO_ELLIPSIZE_END);
+	pango_layout_set_alignment (dc.font.layout, PANGO_ALIGN_CENTER);
+	pango_layout_set_width (dc.font.layout, maxwidth * PANGO_SCALE);
+	pango_layout_get_extents(dc.font.layout, 0, &r);
+
+	XFillRectangle(dpy, dc.drawable, dc.gc, dc.x, dc.y, maxwidth, dc.h);
+
+	if (highlight)
+	{
+		pango_xft_render_layout(dc.xft.drawable, dc.xft.sel + ColTaskFG,
+		                        dc.font.layout, x * PANGO_SCALE, y * PANGO_SCALE);
+	}
+	else
+	{
+		pango_xft_render_layout(dc.xft.drawable, dc.xft.norm + ColTaskFG,
+		                        dc.font.layout, x * PANGO_SCALE, y * PANGO_SCALE);
+	}
+	free (buf);
+	if (boldf)
+		pango_attribute_destroy (boldf);
+	pango_layout_set_attributes(dc.font.layout, NULL);
+	dc.x = dc.x + maxwidth;
+	return (int) round (maxwidth);
+}
+
+int
+drawtags (Monitor *m)
+{
+	char *buf = NULL;
+	PangoAttrList  *attrList = NULL;
+	GError *error = NULL;
+	PangoRectangle r;
+	int width = 0;
+	int maxwidth = 0;
+	int x, y, h, i;
+	Bool invert = False;
+	unsigned long *col;
+	unsigned int occ = 0, urg = 0;
+	Client *c = NULL;
+
+	for (c = m->clients; c; c = c->next)
+	{
+		occ |= c->tags;
+		if (c->isurgent)
+			urg |= c->tags;
+	}
+
+	h = dc.font.ascent + dc.font.descent;
+	y = dc.y + (dc.h / 2) - (h / 2);
+
+	dc.x = 0;
+	XFillRectangle(dpy, dc.drawable, dc.gc, dc.x, dc.y, m->mw, dc.h);
+	XSetForeground(dpy, dc.gc, dc.norm[ColBG]);
+
+	for (i = 0; i < LENGTH(tags); i++)
+	{
+		col = m->tagset[m->seltags] & 1 << i ? dc.sel : dc.norm;
+		h = bh;
+		y = dc.y + (dc.h / 2) - (h / 2);
+		XSetForeground(dpy, dc.gc, col[invert ? ColFG : ColBG]);
+		if (!pango_parse_markup (tags[i], -1, 0, &attrList, &buf, NULL, &error))
+		{
+			if (error);
+			g_error_free (error);
+			buf = g_markup_escape_text (tags[i], -1);
+		}
+		pango_layout_set_attributes(dc.font.layout, attrList);
+		pango_layout_set_text (dc.font.layout, buf, -1);
+		pango_layout_set_single_paragraph_mode (dc.font.layout, TRUE);
+		pango_layout_set_alignment (dc.font.layout, PANGO_ALIGN_CENTER);
+		pango_layout_set_width (dc.font.layout, -1);
+		pango_layout_get_extents(dc.font.layout, 0, &r);
+		maxwidth = 2 * bargap + (int) round(r.width / PANGO_SCALE);
+
+		XFillRectangle(dpy, dc.drawable, dc.gc, dc.x, dc.y, maxwidth, dc.h);
+		pango_xft_render_layout(dc.xft.drawable,
+		                        (col == dc.norm ? dc.xft.norm : dc.xft.sel) + (invert ? ColBG : ColFG),
+		                        dc.font.layout, (dc.x + 5) * PANGO_SCALE,
+		                        y * PANGO_SCALE);
+		free(buf);
+		pango_layout_set_attributes(dc.font.layout, NULL);
+		width += maxwidth;
+		dc.w = maxwidth;
+		dc.x += maxwidth;
+		drawsquare(m == selmon && selmon->sel && selmon->sel->tags & 1 << i, occ & 1 << i, urg & 1 << i, col);
+	}
+
+	XSetForeground(dpy, dc.gc, dc.norm[ColBG]);
+	if (!pango_parse_markup (m->ltsymbol, -1, 0, &attrList, &buf, NULL, &error))
+	{
+		if (error)
+			g_error_free (error);
+		buf = g_markup_escape_text (m->ltsymbol, -1);
+	}
+	pango_layout_set_attributes(dc.font.layout, attrList);
+	pango_layout_set_text (dc.font.layout, buf, -1);
+	pango_layout_set_single_paragraph_mode (dc.font.layout, TRUE);
+	pango_layout_set_alignment (dc.font.layout, PANGO_ALIGN_CENTER);
+	pango_layout_set_width (dc.font.layout, -1);
+	pango_layout_get_extents(dc.font.layout, 0, &r);
+	maxwidth = 10 + (int) round(r.width / PANGO_SCALE);
+
+	XFillRectangle(dpy, dc.drawable, dc.gc, dc.x, dc.y, maxwidth, dc.h);
+	pango_xft_render_layout(dc.xft.drawable, dc.xft.norm + ColFG,
+	                        dc.font.layout, dc.x * PANGO_SCALE,
+	                        y * PANGO_SCALE);
+	free(buf);
+	pango_layout_set_attributes(dc.font.layout, NULL);
+	dc.x += maxwidth;
+	width += maxwidth;
+	return width;
+}
+
+int
+drawstatus (unsigned long col[ColLast])
+{
+	if (strlen (stext) == 0) return 0;
+
+	XSetForeground(dpy, dc.gc, dc.norm[ColBG]);
+	int x, y, h;
+	char *buf = NULL;
+	PangoAttrList  *attrList = NULL;
+	GError *error = NULL;
+	PangoRectangle r;
+	h = bh;
+	y = dc.y + (dc.h / 2) - (h / 2);
+
+	if (!pango_parse_markup (stext, -1, 0, &attrList, &buf, NULL, &error))
+	{
+		if (error)
+			g_error_free (error);
+		buf = g_markup_escape_text (stext, -1);
+	}
 
 	pango_layout_set_attributes(dc.font.layout, attrList);
 	pango_layout_set_text (dc.font.layout, buf, -1);
 	pango_layout_get_extents(dc.font.layout, 0, &r);
-	pango_layout_set_ellipsize (dc.font.layout, PANGO_ELLIPSIZE_NONE);
-	pango_layout_set_width (dc.font.layout, -1);
-
-	XFillRectangle(dpy, dc.drawable, dc.gc, dc.x, dc.y, m->mw, dc.h);
-	pango_xft_render_layout(dc.xft.drawable,
-                       (col == dc.norm ? dc.xft.norm : dc.xft.sel) + (invert ? ColBG : ColFG),
-                        dc.font.layout, x * PANGO_SCALE, y * PANGO_SCALE);
+	x = selmon->mw - dc.systrayw - r.width / PANGO_SCALE;
+	XFillRectangle(dpy, dc.drawable, dc.gc, x - bargap, dc.y, bargap + r.width / PANGO_SCALE, dc.h);
+	pango_xft_render_layout(dc.xft.drawable, dc.xft.norm + ColFG,
+	                        dc.font.layout, x * PANGO_SCALE,
+	                        y * PANGO_SCALE);
 	free (buf);
 	pango_layout_set_attributes(dc.font.layout, NULL);
-	dc.x = dc.x + r.width / PANGO_SCALE;
-	return (int) round (r.width/ PANGO_SCALE);
+	return bargap + (int) round (r.width / PANGO_SCALE);
 }
 
 void
@@ -1429,7 +1494,8 @@ focus(Client *c)
 		detachstack(c);
 		attachstack(c);
 		grabbuttons(c, True);
-		if (c->isfloating) {
+		if (c->isfloating)
+		{
 			XSetWindowBorder(dpy, c->win, dc.sel[ColBorderFloat]);
 		}
 		else
@@ -1513,7 +1579,7 @@ focusmon(const Arg *arg)
 		return;
 	if ((m = dirtomon(arg->i)) == selmon)
 		return;
-	unfocus(selmon->sel, True);
+	unfocus(selmon->sel, False);
 	selmon = m;
 	focus(NULL);
 }
@@ -1660,8 +1726,10 @@ grabbuttons(Client *c, Bool focused)
 		if (focused)
 		{
 			//XRaiseWindow(dpy,c->win);
-			for (i = 0; i < LENGTH(buttons); i++) {
-				if (buttons[i].click == ClkClientWin) {
+			for (i = 0; i < LENGTH(buttons); i++)
+			{
+				if (buttons[i].click == ClkClientWin)
+				{
 					for (j = 0; j < LENGTH(modifiers); j++)
 						XGrabButton(dpy, buttons[i].button,
 						            buttons[i].mask | modifiers[j],
@@ -1744,7 +1812,8 @@ keypress(XEvent *e)
 	XKeyEvent *ev;
 
 	ev = &e->xkey;
-	keysym = XKeycodeToKeysym(dpy, (KeyCode)ev->keycode, 0);
+	//keysym = XKeycodeToKeysym(dpy, (KeyCode)ev->keycode, 0);
+	keysym = XkbKeycodeToKeysym(dpy, (KeyCode)ev->keycode, 0, 0);
 	for (i = 0; i < LENGTH(keys); i++)
 		if (keysym == keys[i].keysym
 		        && CLEANMASK(keys[i].mod) == CLEANMASK(ev->state)
@@ -1753,12 +1822,16 @@ keypress(XEvent *e)
 }
 
 void
-raiseclient(const Arg *arg) {
+raiseclient(const Arg *arg)
+{
 	if (!selmon->sel)
 		return;
 	XAllowEvents(dpy, ReplayPointer, CurrentTime);
-	XRaiseWindow(dpy, selmon->sel->win);
+	if (!selmon->lt[selmon->sellt]->arrange || selmon->sel->isfloating)
+		XRaiseWindow(dpy, selmon->sel->win);
 	XFlush(dpy);
+	focus(selmon->sel);
+	restack(selmon);
 }
 
 void
@@ -1930,6 +2003,8 @@ movemouse(const Arg *arg)
 	XEvent ev;
 
 	if (!(c = selmon->sel))
+		return;
+	if (c->isfullscreen) /* no support moving fullscreen windows by mouse */
 		return;
 	restack(selmon);
 	ocx = c->x;
@@ -2147,6 +2222,8 @@ resizemouse(const Arg *arg)
 	XEvent ev;
 
 	if (!(c = selmon->sel))
+		return;
+	if (c->isfullscreen) /* no support resizing fullscreen windows by mouse */
 		return;
 	restack(selmon);
 	ocx = c->x;
@@ -2512,6 +2589,7 @@ setup(void)
 	XChangeWindowAttributes(dpy, root, CWEventMask | CWCursor, &wa);
 	XSelectInput(dpy, root, wa.event_mask);
 	grabkeys();
+	focus(NULL);
 }
 
 void
@@ -2550,38 +2628,42 @@ spawn(const Arg *arg)
 	{
 		if (dpy)
 			close(ConnectionNumber(dpy));
-                if(selmon->sel) {
-                        const char* const home = getenv("HOME");
-                        assert(home && strchr(home, '/'));
-                        const size_t homelen = strlen(home);
-                        char *cwd, *pathbuf = NULL;
-                        struct stat statbuf;
- 
-                        cwd = strtok(selmon->sel->name, SPAWN_CWD_DELIM);
-                        /* NOTE: strtok() alters selmon->sel->name in-place,
-                         * but that does not matter because we are going to
-                         * exec() below anyway; nothing else will use it */
-                        while(cwd) {
-                                if(*cwd == '~') { /* replace ~ with $HOME */
-                                        if(!(pathbuf = malloc(homelen + strlen(cwd)))) /* ~ counts for NULL term */
-                                                die("fatal: could not malloc() %u bytes\n", homelen + strlen(cwd));
-                                        strcpy(strcpy(pathbuf, home) + homelen, cwd + 1);
-                                        cwd = pathbuf;
-                                }
- 
-                                if(strchr(cwd, '/') && !stat(cwd, &statbuf)) {
-                                        if(!S_ISDIR(statbuf.st_mode))
-                                                cwd = dirname(cwd);
- 
-                                        if(!chdir(cwd))
-                                                break;
-                                }
- 
-                                cwd = strtok(NULL, SPAWN_CWD_DELIM);
-                        }
- 
-                        free(pathbuf);
-                }
+		if (selmon->sel)
+		{
+			const char *const home = getenv("HOME");
+			assert(home && strchr(home, '/'));
+			const size_t homelen = strlen(home);
+			char *cwd, *pathbuf = NULL;
+			struct stat statbuf;
+
+			cwd = strtok(selmon->sel->name, SPAWN_CWD_DELIM);
+			/* NOTE: strtok() alters selmon->sel->name in-place,
+			 * but that does not matter because we are going to
+			 * exec() below anyway; nothing else will use it */
+			while (cwd)
+			{
+				if (*cwd == '~')  /* replace ~ with $HOME */
+				{
+					if (!(pathbuf = malloc(homelen + strlen(cwd)))) /* ~ counts for NULL term */
+						die("fatal: could not malloc() %u bytes\n", homelen + strlen(cwd));
+					strcpy(strcpy(pathbuf, home) + homelen, cwd + 1);
+					cwd = pathbuf;
+				}
+
+				if (strchr(cwd, '/') && !stat(cwd, &statbuf))
+				{
+					if (!S_ISDIR(statbuf.st_mode))
+						cwd = dirname(cwd);
+
+					if (!chdir(cwd))
+						break;
+				}
+
+				cwd = strtok(NULL, SPAWN_CWD_DELIM);
+			}
+
+			free(pathbuf);
+		}
 		setsid();
 		execvp(((char **)arg->v)[0], (char **)arg->v);
 		fprintf(stderr, "dwm: execvp %s", ((char **)arg->v)[0]);
@@ -2692,6 +2774,8 @@ void
 togglefloating(const Arg *arg)
 {
 	if (!selmon->sel)
+		return;
+	if (selmon->sel->isfullscreen) /* no support for fullscreen windows */
 		return;
 	selmon->sel->isfloating = !selmon->sel->isfloating || selmon->sel->isfixed;
 	if (selmon->sel->isfloating)
