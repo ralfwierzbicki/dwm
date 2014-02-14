@@ -30,9 +30,9 @@ static const char *mute[]       = { "amixer", "-q", "set", "Master", "toggle", N
 
 /* tagging */
 static const char *tags[] = {
-	"1",
-	"2",
-	"3",
+	"¹ ",
+	"² ",
+	"³ ",
 	"4",
 	"5",
 	"6",

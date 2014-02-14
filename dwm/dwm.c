@@ -1264,9 +1264,8 @@ drawtitle (const char *text, unsigned long col[ColLast], Bool highlight, Monitor
 
 	if (first)
 		dc.x = dc.tagsw;
-	h = dc.font.ascent + dc.font.descent;
-	y = dc.y + (dc.h / 2) - (h / 2);
-	x = dc.x + (h / 2);
+	//h = dc.font.ascent + dc.font.descent;
+	//x = dc.x + (h / 2);
 
 	if (highlight)
 	{
@@ -1299,6 +1298,9 @@ drawtitle (const char *text, unsigned long col[ColLast], Bool highlight, Monitor
 	pango_layout_set_width (dc.font.layout, maxwidth * PANGO_SCALE);
 	pango_layout_get_extents(dc.font.layout, 0, &r);
 
+	h = (int) round(r.height / PANGO_SCALE);
+	y = dc.y + (dc.h / 2) - (h / 2);
+	x = dc.x + (h / 2);
 	XFillRectangle(dpy, dc.drawable, dc.gc, dc.x, dc.y, maxwidth, dc.h);
 
 	if (highlight)
@@ -1351,8 +1353,6 @@ drawtags (Monitor *m)
 	for (i = 0; i < LENGTH(tags); i++)
 	{
 		col = m->tagset[m->seltags] & 1 << i ? dc.sel : dc.norm;
-		h = bh;
-		y = dc.y + (dc.h / 2) - (h / 2);
 		XSetForeground(dpy, dc.gc, col[invert ? ColFG : ColBG]);
 		if (!pango_parse_markup (tags[i], -1, 0, &attrList, &buf, NULL, &error))
 		{
@@ -1367,11 +1367,14 @@ drawtags (Monitor *m)
 		pango_layout_set_width (dc.font.layout, -1);
 		pango_layout_get_extents(dc.font.layout, 0, &r);
 		maxwidth = 2 * bargap + (int) round(r.width / PANGO_SCALE);
+		pango_layout_set_width (dc.font.layout, maxwidth * PANGO_SCALE);
+		h = (int) round(r.height / PANGO_SCALE);
+		y = dc.y + (dc.h / 2) - (h / 2);
 
 		XFillRectangle(dpy, dc.drawable, dc.gc, dc.x, dc.y, maxwidth, dc.h);
 		pango_xft_render_layout(dc.xft.drawable,
 		                        (col == dc.norm ? dc.xft.norm : dc.xft.sel) + (invert ? ColBG : ColFG),
-		                        dc.font.layout, (dc.x + 5) * PANGO_SCALE,
+		                        dc.font.layout, dc.x * PANGO_SCALE,
 		                        y * PANGO_SCALE);
 		free(buf);
 		pango_layout_set_attributes(dc.font.layout, NULL);
@@ -1418,8 +1421,6 @@ drawstatus (unsigned long col[ColLast])
 	PangoAttrList  *attrList = NULL;
 	GError *error = NULL;
 	PangoRectangle r;
-	h = bh;
-	y = dc.y + (dc.h / 2) - (h / 2);
 
 	if (!pango_parse_markup (stext, -1, 0, &attrList, &buf, NULL, &error))
 	{
@@ -1431,6 +1432,8 @@ drawstatus (unsigned long col[ColLast])
 	pango_layout_set_attributes(dc.font.layout, attrList);
 	pango_layout_set_text (dc.font.layout, buf, -1);
 	pango_layout_get_extents(dc.font.layout, 0, &r);
+	h = (int) round(r.height / PANGO_SCALE);
+        y = dc.y + (dc.h / 2) - (h / 2);
 	x = selmon->mw - dc.systrayw - r.width / PANGO_SCALE;
 	XFillRectangle(dpy, dc.drawable, dc.gc, x - bargap, dc.y, bargap + r.width / PANGO_SCALE, dc.h);
 	pango_xft_render_layout(dc.xft.drawable, dc.xft.norm + ColFG,
