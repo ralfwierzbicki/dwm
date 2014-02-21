@@ -3,26 +3,28 @@
 #include <X11/XF86keysym.h>
 
 /* appearance */
-static const char font[]            = "Terminus 12";
+static const char font[]            = "Terminus (TTF) 12";
 static const char normbordercolor[] = "#444444";
 static const char normbgcolor[]     = "#222222";
 static const char normfgcolor[]     = "#bbbbbb";
 static const char selbordercolor[]  = "#005577";
-static const char selbgcolor[]      = "#005577";
+static const char selbgcolor[]      = "#130a4f";
 static const char selfgcolor[]      = "#eeeeee";
 static const char floatnormbordercolor[] = "#005577";
 static const char floatselbordercolor[]  = "#0687BA";
 static const char taskfg[] = "#eeeeee";
-static const char taskbg[]  = "#0687BA";
+static const char taskbg[]  = "#130a4f";
 static const char urgbordercolor[]  = "#ff0000";
 static const unsigned int borderpx  = 1;        /* border pixel of windows */
 static const unsigned int snap      = 32;       /* snap pixel */
 static const unsigned int systrayspacing = 2;   /* systray spacing */
 static const unsigned int gappx     = 3;        /* gap pixel between windows */
-static const Bool showsystray       = True;     /* False means no systray */
+static const unsigned int barheight = 22;	/* bar height in pixels */
+static const Bool showsystray       = False;    /* False means no systray */
 static const Bool showbar           = True;     /* False means no bar */
 static const Bool topbar            = True;     /* False means bottom bar */
 static const Bool statusmarkup      = True;     /* True means use pango markup in status message */
+static const Bool enableComposite   = True;
 static const unsigned int bargap    = 10;
 static const char *volumedown[] = { "amixer", "-q", "set", "Master", "2%-", "unmute", NULL };
 static const char *volumeup[]   = { "amixer", "-q", "set", "Master", "2%+", "unmute", NULL };
@@ -111,8 +113,8 @@ static Key keys[] = {
 	{ MODKEY|ShiftMask,             XK_comma,  tagmon,         {.i = -1 } },
 	{ MODKEY|ShiftMask,             XK_period, tagmon,         {.i = +1 } },
 	//{ 0, XF86XK_AudioLowerVolume,              spawn,          { .v = volumedown } },
-	//{ 0, XF86XK_AudioRaiseVolume,              spawn,          { .v = volumeup } }, 
-        //{ 0, XF86XK_AudioMute,                     spawn,          { .v = mute } },
+	//{ 0, XF86XK_AudioRaiseVolume,              spawn,          { .v = volumeup } },
+	//{ 0, XF86XK_AudioMute,                     spawn,          { .v = mute } },
 	TAGKEYS(                        XK_1,                      0)
 	TAGKEYS(                        XK_2,                      1)
 	TAGKEYS(                        XK_3,                      2)
@@ -122,7 +124,9 @@ static Key keys[] = {
 	TAGKEYS(                        XK_7,                      6)
 	TAGKEYS(                        XK_8,                      7)
 	TAGKEYS(                        XK_9,                      8)
-	{ MODKEY,		        XK_q,      quit,           {0} },
+	{
+		MODKEY,		        XK_q,      quit,           {0}
+	},
 };
 
 /* button definitions */
@@ -133,9 +137,9 @@ static Button buttons[] = {
 	{ ClkLtSymbol,          0,              Button3,        setlayout,      {.v = &layouts[2]} },
 	{ ClkWinTitle,          0,              Button3,        killclient,     {0} },
 	{ ClkStatusText,        0,              Button3,        spawn,          {.v = deskmenu } },
-	{ ClkClientWin,		0,		Button1,	raiseclient,	{0} },
-	{ ClkClientWin,         0,              Button2,        raiseclient,    {0} },
-	{ ClkClientWin,         0,              Button3,        raiseclient,    {0} },
+	//{ ClkClientWin,		0,		Button1,	raiseclient,	{0} },
+	//{ ClkClientWin,         0,              Button2,        raiseclient,    {0} },
+	//{ ClkClientWin,         0,              Button3,        raiseclient,    {0} },
 	{ ClkClientWin,         MODKEY,         Button1,        movemouse,      {0} },
 	{ ClkClientWin,         MODKEY,         Button2,        togglefloating, {0} },
 	{ ClkClientWin,         MODKEY,         Button3,        resizemouse,    {0} },

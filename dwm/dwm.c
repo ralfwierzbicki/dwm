@@ -48,8 +48,13 @@
 #include <X11/extensions/Xinerama.h>
 #endif /* XINERAMA */
 
-#include <libsn/sn.h>
-#include "libsn.c"
+#include <X11/extensions/Xcomposite.h>
+#include <X11/extensions/Xdamage.h>
+#include <X11/extensions/Xrender.h>
+#include <X11/extensions/shape.h>
+
+#include "dwm.h"
+#include "composite.h"
 
 /* macros */
 #define BUTTONMASK              (ButtonPressMask|ButtonReleaseMask)
@@ -90,17 +95,6 @@
 /* enums */
 enum { CurNormal, CurResize, CurMove, CurLast };        /* cursor */
 enum { ColBorder, ColFG, ColBG, ColBorderFloat, ColTaskFG, ColTaskBG, ColUrgBorder, ColLast }; /* color */
-enum
-{
-	NetSupported, NetSystemTray, NetSystemTrayOP, NetSystemTrayOrientation,
-	NetWMName, NetWMState, NetWMFullscreen, NetActiveWindow, NetWMWindowType,
-	NetWMWindowTypeDialog, NetStartupID, NetStartupInfo, NetStartupInfoBegin,
-	NetNumberOfDesktops, NetCurrentDesktop,
-	NetLast
-}; /* EWMH atoms */
-
-enum { Manager, Xembed, XembedInfo, XLast }; /* Xembed atoms */
-enum { WMProtocols, WMDelete, WMState, WMTakeFocus, WMWindowRole, WMLast }; /* default atoms */
 enum { ClkTagBar, ClkLtSymbol, ClkStatusText, ClkWinTitle,
        ClkClientWin, ClkRootWin, ClkLast
      };             /* clicks */
@@ -207,8 +201,6 @@ struct Monitor
 	int titlebarbegin;
 	int titlebarend;
 	int visclients;
-	/* startup notification */
-	SnMonitorContext *snContext;
 };
 
 typedef struct
@@ -374,11 +366,10 @@ static void (*handler[LASTEvent]) (XEvent *) =
 static Atom wmatom[WMLast], netatom[NetLast], xatom[XLast];
 static Bool running = True;
 static Cursor cursor[CurLast];
-static Display *dpy;
-static SnDisplay *snDisplay;
+Display *dpy;
 static DC dc;
 static Monitor *mons = NULL, *selmon = NULL;
-static Window root;
+Window root;
 static int globalborder ;
 static int globalborder ;
 
@@ -579,6 +570,10 @@ buttonpress(XEvent *e)
 	Monitor *m;
 	XButtonPressedEvent *ev = &e->xbutton;
 
+	if (!(c = wintoclient(ev->window))) {
+		XAllowEvents(dpy, AsyncPointer, ev->time);
+	}
+
 	click = ClkRootWin;
 	/* focus monitor if necessary */
 	if ((m = wintomon(ev->window)) && m != selmon)
@@ -610,6 +605,21 @@ buttonpress(XEvent *e)
 	}
 	else if ((c = wintoclient(ev->window)))
 	{
+		if (ev->state & MODKEY)
+		{
+			XAllowEvents(dpy, AsyncPointer, ev->time);
+		}
+		else
+		{
+			XAllowEvents(dpy, ReplayPointer, ev->time);
+			if (c->isfloating || !c->mon->lt[c->mon->sellt]->arrange)
+			{
+				XRaiseWindow(dpy, c->win);
+			}
+			focus (c);
+			restack (selmon);
+			XFlush (dpy);
+		}
 		click = ClkClientWin;
 	}
 	for (i = 0; i < LENGTH(buttons); i++)
@@ -684,7 +694,6 @@ cleanupmon(Monitor *mon)
 	}
 	XUnmapWindow(dpy, mon->barwin);
 	XDestroyWindow(dpy, mon->barwin);
-	if (mon->snContext != NULL) sn_monitor_context_unref(mon->snContext);
 	free(mon);
 }
 
@@ -714,11 +723,6 @@ clientmessage(XEvent *e)
 	        cme->message_type == netatom[NetStartupInfoBegin])
 	{
 		fprintf (stderr, "startup!\n");
-	}
-
-	if (sn_display_process_event(snDisplay, e))
-	{
-		fprintf (stderr, "client message: startup feedback\n");
 	}
 
 	if (showsystray && cme->window == systray->win && cme->message_type == netatom[NetSystemTrayOP])
@@ -806,11 +810,6 @@ configurenotify(XEvent *e)
 	XConfigureEvent *ev = &e->xconfigure;
 	Bool dirty;
 
-	if (sn_display_process_event(snDisplay, e))
-	{
-		fprintf (stderr, "configure notify: startup feedback\n");
-	}
-
 	if (ev->window == root)
 	{
 		dirty = (sw != ev->width || sh != ev->height);
@@ -838,11 +837,6 @@ configurerequest(XEvent *e)
 	Monitor *m;
 	XConfigureRequestEvent *ev = &e->xconfigurerequest;
 	XWindowChanges wc;
-
-	if (sn_display_process_event(snDisplay, e))
-	{
-		fprintf (stderr, "configure request: startup feedback\n");
-	}
 
 	if ((c = wintoclient(ev->window)))
 	{
@@ -897,43 +891,6 @@ configurerequest(XEvent *e)
 	XSync(dpy, False);
 }
 
-/* startup notifications */
-static void
-sn_event_func (SnMonitorEvent *event, void *user_data)
-{
-	SnMonitorContext *context;
-	SnStartupSequence *sequence;
-
-	context = sn_monitor_event_get_context(event);
-	sequence = sn_monitor_event_get_startup_sequence(event);
-
-	switch (sn_monitor_event_get_type(event))
-	{
-	case SN_MONITOR_EVENT_INITIATED:
-	case SN_MONITOR_EVENT_CHANGED:
-		if (sn_monitor_event_get_type (event) == SN_MONITOR_EVENT_INITIATED)
-		{
-			printf("Initiated sequence %s\n", sn_startup_sequence_get_id(sequence));
-		}
-		else
-		{
-			printf("Changed sequence %s\n", sn_startup_sequence_get_id(sequence));
-		}
-		break;
-	case SN_MONITOR_EVENT_CANCELED:
-	case SN_MONITOR_EVENT_COMPLETED:
-		if (sn_monitor_event_get_type (event) == SN_MONITOR_EVENT_CANCELED)
-		{
-			printf("Canceled sequence %s\n", sn_startup_sequence_get_id(sequence));
-		}
-		else
-		{
-			printf("Completed sequence %s\n", sn_startup_sequence_get_id(sequence));
-		}
-		break;
-	}
-}
-
 Monitor *
 createmon(void)
 {
@@ -969,9 +926,6 @@ createmon(void)
 		/* init showbar */
 		m->pertag->showbars[i] = m->showbar;
 	}
-	/* startup notifications */
-	if (snDisplay != NULL)
-		m->snContext = sn_monitor_context_new (snDisplay, screen, sn_event_func, NULL, NULL);
 
 	return m;
 }
@@ -982,13 +936,10 @@ destroynotify(XEvent *e)
 	Client *c;
 	XDestroyWindowEvent *ev = &e->xdestroywindow;
 
-	if (sn_display_process_event(snDisplay, e))
-	{
-		fprintf (stderr, "destroy: startup feedback\n");
-	}
-
 	if ((c = wintoclient(ev->window)))
+	{
 		unmanage(c, True);
+	}
 	else if ((c = wintosystrayicon(ev->window)))
 	{
 		removesystrayicon(c);
@@ -1433,7 +1384,7 @@ drawstatus (unsigned long col[ColLast])
 	pango_layout_set_text (dc.font.layout, buf, -1);
 	pango_layout_get_extents(dc.font.layout, 0, &r);
 	h = (int) round(r.height / PANGO_SCALE);
-        y = dc.y + (dc.h / 2) - (h / 2);
+	y = dc.y + (dc.h / 2) - (h / 2);
 	x = selmon->mw - dc.systrayw - r.width / PANGO_SCALE;
 	XFillRectangle(dpy, dc.drawable, dc.gc, x - bargap, dc.y, bargap + r.width / PANGO_SCALE, dc.h);
 	pango_xft_render_layout(dc.xft.drawable, dc.xft.norm + ColFG,
@@ -1450,11 +1401,6 @@ enternotify(XEvent *e)
 	Client *c;
 	Monitor *m;
 	XCrossingEvent *ev = &e->xcrossing;
-
-	if (sn_display_process_event(snDisplay, e))
-	{
-		fprintf (stderr, "enter: startup feedback\n");
-	}
 
 	if ((ev->mode != NotifyNormal || ev->detail == NotifyInferior) && ev->window != root)
 		return;
@@ -1475,7 +1421,37 @@ expose(XEvent *e)
 {
 	Monitor *m;
 	XExposeEvent *ev = &e->xexpose;
+	static int n_expose;
+	static int size_expose;
+	static XRectangle *expose_rects = NULL;
 
+	if (ev->window == root && enableComposite)
+	{
+		int more = ev->count + 1;
+		if (n_expose == size_expose)
+		{
+			if (expose_rects)
+			{
+				expose_rects = realloc (expose_rects, (size_expose + more) * sizeof (XRectangle));
+				size_expose += more;
+			}
+		}
+		else
+		{
+			expose_rects = malloc (more * sizeof (XRectangle));
+			size_expose = more;
+		}
+		expose_rects[n_expose].x = ev->x;
+		expose_rects[n_expose].y = ev->y;
+		expose_rects[n_expose].width = ev->width;
+		expose_rects[n_expose].height = ev->height;
+		n_expose++;
+		if (ev->count == 0)
+		{
+			expose_root (dpy, root, expose_rects, n_expose);
+			n_expose = 0;
+		}
+	}
 	if (ev->count == 0 && (m = wintomon(ev->window)))
 		drawbar(m);
 }
@@ -1532,7 +1508,8 @@ focusonclick(const Arg *arg)
 		while (c)
 		{
 			tw = TEXTW(c->name);
-			if (tw < mw) extra += (mw - tw); else i++;
+			if (tw < mw) extra += (mw - tw);
+			else i++;
 			for (c = c->next; c && !ISVISIBLE(c); c = c->next);
 		}
 		if (i > 0) mw += extra / i;
@@ -1735,7 +1712,8 @@ grabbuttons(Client *c, Bool focused)
 				{
 					for (j = 0; j < LENGTH(modifiers); j++)
 						XGrabButton(dpy, buttons[i].button,
-						            buttons[i].mask | modifiers[j],
+						            AnyModifier,
+						            /*buttons[i].mask | modifiers[j],*/
 						            c->win, False, BUTTONMASK,
 						            GrabModeSync, GrabModeSync, None, None);
 				}
@@ -1743,7 +1721,7 @@ grabbuttons(Client *c, Bool focused)
 		}
 		else
 			XGrabButton(dpy, AnyButton, AnyModifier, c->win, False,
-			            BUTTONMASK, GrabModeAsync, GrabModeSync, None, None);
+			            BUTTONMASK, GrabModeSync, GrabModeSync, None, None);
 	}
 }
 
@@ -1827,6 +1805,9 @@ keypress(XEvent *e)
 void
 raiseclient(const Arg *arg)
 {
+	Client *c;
+
+	fprintf (stderr, "%d\n", arg->i);
 	if (!selmon->sel)
 		return;
 
@@ -1928,11 +1909,6 @@ void
 mappingnotify(XEvent *e)
 {
 
-	if (sn_display_process_event(snDisplay, e))
-	{
-		fprintf (stderr, "map notify: startup feedback\n");
-	}
-
 	XMappingEvent *ev = &e->xmapping;
 
 	XRefreshKeyboardMapping(ev);
@@ -1982,11 +1958,6 @@ motionnotify(XEvent *e)
 	static Monitor *mon = NULL;
 	Monitor *m;
 	XMotionEvent *ev = &e->xmotion;
-
-	if (sn_display_process_event(snDisplay, e))
-	{
-		fprintf (stderr, "motion: startup feedback\n");
-	}
 
 	if (ev->window != root)
 		return;
@@ -2083,11 +2054,7 @@ propertynotify(XEvent *e)
 	Client *c;
 	Window trans;
 	XPropertyEvent *ev = &e->xproperty;
-
-	if (sn_display_process_event(snDisplay, e))
-	{
-		fprintf (stderr, "property notify: startup feedback\n");
-	}
+	int p;
 
 	if ((c = wintosystrayicon(ev->window)))
 	{
@@ -2109,7 +2076,8 @@ propertynotify(XEvent *e)
 	{
 		switch (ev->atom)
 		{
-		default: break;
+		default:
+			break;
 		case XA_WM_TRANSIENT_FOR:
 			if (!c->isfloating && (XGetTransientForHint(dpy, c->win, &trans)) &&
 			        (c->isfloating = (wintoclient(trans)) != NULL))
@@ -2206,10 +2174,14 @@ resizeclient(Client *c, int x, int y, int w, int h)
 		}
 	}
 
-	c->oldx = c->x; c->x = wc.x = x + globalborder ;
-	c->oldy = c->y; c->y = wc.y = y + globalborder ;
-	c->oldw = c->w; c->w = wc.width = w - 2 * globalborder ;
-	c->oldh = c->h; c->h = wc.height = h - 2 * globalborder ;
+	c->oldx = c->x;
+	c->x = wc.x = x + globalborder ;
+	c->oldy = c->y;
+	c->y = wc.y = y + globalborder ;
+	c->oldw = c->w;
+	c->w = wc.width = w - 2 * globalborder ;
+	c->oldh = c->h;
+	c->h = wc.height = h - 2 * globalborder ;
 	wc.border_width = c->bw;
 	XConfigureWindow(dpy, c->win, CWX | CWY | CWWidth | CWHeight | CWBorderWidth, &wc);
 	configure(c);
@@ -2319,11 +2291,181 @@ void
 run(void)
 {
 	XEvent ev;
+	int p;
+	XRectangle      *expose_rects = NULL;
+	int             size_expose = 0;
+	int             n_expose = 0;
+	XWindowAttributes wa;
+	struct pollfd   ufd;
+
 	/* main event loop */
 	XSync(dpy, False);
-	while (running && !XNextEvent(dpy, &ev))
-		if (handler[ev.type])
-			handler[ev.type](&ev); /* call handler */
+	ufd.fd = ConnectionNumber (dpy);
+	ufd.events = POLLIN;
+
+	for (;;)
+	{
+		do
+		{
+			if (!QLength (dpy))
+			{
+				if (poll (&ufd, 1, fade_timeout()) == 0)
+				{
+					run_fades (dpy);
+					break;
+				}
+			}
+
+			XNextEvent (dpy, &ev);
+			if (enableComposite)
+			{
+
+				if ((ev.type & 0x7f) != KeymapNotify)
+					discard_ignore (dpy, ev.xany.serial);
+
+				switch (ev.type)
+				{
+				case CreateNotify:
+					add_win (dpy, ev.xcreatewindow.window, 0);
+					break;
+				case ConfigureNotify:
+					handler[ev.type](&ev);
+					configure_win (dpy, &ev.xconfigure);
+					break;
+				case DestroyNotify:
+					destroy_win (dpy, ev.xdestroywindow.window, False, True);
+					handler[ev.type](&ev);
+					break;
+				case MapNotify:
+					map_win (dpy, ev.xmap.window, ev.xmap.serial, True);
+					break;
+				case UnmapNotify:
+					unmap_win (dpy, ev.xunmap.window, True);
+					handler[ev.type](&ev);
+					break;
+				case ReparentNotify:
+					if (ev.xreparent.parent == root)
+						add_win (dpy, ev.xreparent.window, 0);
+					else
+						destroy_win (dpy, ev.xreparent.window, False, True);
+					fprintf (stderr, "reparentnotify\n");
+					break;
+				case CirculateNotify:
+					fprintf (stderr, "circulatenotify\n");
+					circulate_win (dpy, &ev.xcirculate);
+					break;
+				case Expose: /*
+                    if (ev.xexpose.window == root)
+                    {
+                        int more = ev.xexpose.count + 1;
+                        if (n_expose == size_expose)
+                        {
+                            if (expose_rects)
+                            {
+                                expose_rects = realloc (expose_rects,
+                                                        (size_expose + more) *
+                                                        sizeof (XRectangle));
+                                size_expose += more;
+                            }
+                            else
+                            {
+                                expose_rects = malloc (more * sizeof (XRectangle));
+                                size_expose = more;
+                            }
+                        }
+                        expose_rects[n_expose].x = ev.xexpose.x;
+                        expose_rects[n_expose].y = ev.xexpose.y;
+                        expose_rects[n_expose].width = ev.xexpose.width;
+                        expose_rects[n_expose].height = ev.xexpose.height;
+                        n_expose++;
+                        if (ev.xexpose.count == 0)
+                        {
+                            expose_root (dpy, root, expose_rects, n_expose);
+                            n_expose = 0;
+                        }
+                    }*/
+					handler[ev.type](&ev);
+					break;
+				case PropertyNotify:
+					handler[ev.type](&ev);
+					for (p = 0; backgroundProps[p]; p++)
+					{
+						if (ev.xproperty.atom == XInternAtom (dpy, backgroundProps[p], False))
+						{
+							if (rootTile)
+							{
+								XClearArea (dpy, root, 0, 0, 0, 0, True);
+								XRenderFreePicture (dpy, rootTile);
+								rootTile = None;
+								break;
+							}
+						}
+					}
+					/* check if Trans property was changed */
+					if (ev.xproperty.atom == netatom[NetWMWindowOpacity])
+					{
+						/* reset mode and redraw window */
+						win *w = find_win(dpy, ev.xproperty.window);
+						if (w)
+						{
+							if (fadeTrans)
+							{
+								set_fade (dpy, w, w->opacity * 1.0 / OPAQUE, get_opacity_percent (dpy, w, 1.0),
+								          fade_out_step, NULL, False, True, False);
+							}
+							else
+							{
+								w->opacity = get_opacity_prop(dpy, w, OPAQUE);
+								determine_mode(dpy, w);
+								if (w->shadow)
+								{
+									XRenderFreePicture (dpy, w->shadow);
+									w->shadow = None;
+									w->extents = win_extents (dpy, w);
+								}
+							}
+						}
+					}
+					break;
+				default:
+
+					if (ev.type == damage_event + XDamageNotify && enableComposite)
+					{
+						damage_win (dpy, (XDamageNotifyEvent *) &ev);
+					}
+					else if (ev.type == xshape_event + ShapeNotify)
+					{
+						shape_win (dpy, (XShapeEvent *) &ev);
+					}
+					else if (handler[ev.type])
+					{
+						handler[ev.type](&ev);
+					}
+					break;
+				}
+			}
+			else
+			{
+				if (handler[ev.type])
+					handler[ev.type](&ev);
+			}
+
+		}
+		while (QLength (dpy));
+
+		if (!running)
+			break;
+
+		if (allDamage && enableComposite)
+		{
+			static int  paint;
+			paint_all (dpy, allDamage);
+			paint++;
+			XSync (dpy, False);
+			allDamage = None;
+			clipChanged = False;
+		}
+	}
 }
 
 void
@@ -2513,6 +2655,10 @@ void
 setup(void)
 {
 	XSetWindowAttributes wa;
+	Window      root_return, parent_return;
+	Window          *children;
+	unsigned int    nchildren;
+	int             i;
 
 	/* clean up any zombies immediately */
 	sigchld(0);
@@ -2523,7 +2669,7 @@ setup(void)
 	initfont(font);
 	sw = DisplayWidth(dpy, screen);
 	sh = DisplayHeight(dpy, screen);
-	bh = dc.h = 22; //dc.font.height + 2;
+	bh = dc.h = barheight; //dc.font.height + 2;
 	updategeom();
 	/* init atoms */
 	wmatom[WMProtocols] = XInternAtom(dpy, "WM_PROTOCOLS", False);
@@ -2543,8 +2689,18 @@ setup(void)
 	netatom[NetWMFullscreen] = XInternAtom(dpy, "_NET_WM_STATE_FULLSCREEN", False);
 	netatom[NetNumberOfDesktops] = XInternAtom(dpy, "_NET_NUMBER_OF_DESKTOPS", False);
 	netatom[NetCurrentDesktop] = XInternAtom(dpy, "_NET_CURRENT_DESKTOP", False);
-	netatom[NetWMWindowType] = XInternAtom(dpy, "_NET_WM_WINDOW_TYPE", False);
+
+	netatom[NetWMWindowTypeDesktop] = XInternAtom(dpy, "_NET_WM_WINDOW_TYPE_DESKTOP", False);
+	netatom[NetWMWindowTypeDock] = XInternAtom(dpy, "_NET_WM_WINDOW_TYPE_DOCK", False);
+	netatom[NetWMWindowTypeToolbar] = XInternAtom(dpy, "_NET_WM_WINDOW_TYPE_TOOLBAR", False);
+	netatom[NetWMWindowTypeMenu] = XInternAtom(dpy, "_NET_WM_WINDOW_TYPE_MENU", False);
+	netatom[NetWMWindowTypeUtility] = XInternAtom(dpy, "_NET_WM_WINDOW_TYPE_UTILITY", False);
+	netatom[NetWMWindowTypeSplash] = XInternAtom(dpy, "_NET_WM_WINDOW_TYPE_SPLASH", False);
+	netatom[NetWMWindowTypeNormal] = XInternAtom(dpy, "_NET_WM_WINDOW_TYPE_NORMAL", False);
 	netatom[NetWMWindowTypeDialog] = XInternAtom(dpy, "_NET_WM_WINDOW_TYPE_DIALOG", False);
+	netatom[NetWMWindowType] = XInternAtom(dpy, "_NET_WM_WINDOW_TYPE", False);
+	netatom[NetWMWindowOpacity] = XInternAtom(dpy, "_NET_WM_WINDOW_OPACITY", False);
+
 	wmatom[WMWindowRole] = XInternAtom(dpy, "WM_WINDOW_ROLE", False);
 	xatom[Manager] = XInternAtom(dpy, "MANAGER", False);
 	xatom[Xembed] = XInternAtom(dpy, "_XEMBED", False);
@@ -2588,10 +2744,22 @@ setup(void)
 	setcurrentdesktop();
 	/* select for events */
 	wa.cursor = cursor[CurNormal];
-	wa.event_mask = SubstructureRedirectMask | SubstructureNotifyMask | ButtonPressMask | PointerMotionMask
-	                | EnterWindowMask | LeaveWindowMask | StructureNotifyMask | PropertyChangeMask;
+	wa.event_mask = SubstructureRedirectMask | StructureNotifyMask | ButtonPressMask | PointerMotionMask
+	                | EnterWindowMask | LeaveWindowMask | StructureNotifyMask | PropertyChangeMask | SubstructureNotifyMask;
 	XChangeWindowAttributes(dpy, root, CWEventMask | CWCursor, &wa);
 	XSelectInput(dpy, root, wa.event_mask);
+	/* composite */
+	if (enableComposite)
+	{
+		XCompositeRedirectSubwindows (dpy, root, CompositeRedirectManual);
+		register_cm (dpy);
+		XQueryTree (dpy, root, &root_return, &parent_return, &children, &nchildren);
+		for (i = 0; i < nchildren; i++)
+			add_win (dpy, children[i], i ? children[i - 1] : None);
+		XFree (children);
+		paint_all (dpy, None);
+	}
+
 	grabkeys();
 	focus(NULL);
 }
@@ -2898,9 +3066,13 @@ unmapnotify(XEvent *e)
 	if ((c = wintoclient(ev->window)))
 	{
 		if (ev->send_event)
+		{
 			setclientstate(c, WithdrawnState);
+		}
 		else
+		{
 			unmanage(c, False);
+		}
 	}
 	else if ((c = wintosystrayicon(ev->window)))
 	{
@@ -3394,16 +3566,11 @@ xerror(Display *dpy, XErrorEvent *ee)
 
 	XGetErrorText (dpy , ee->error_code, buf, 63);
 
-	if (error_trap_depth == 0)
+	if (ee->request_code == composite_opcode &&
+	        ee->minor_code == X_CompositeRedirectSubwindows)
 	{
-		print_backtrace ();
-
-		fprintf (stderr, "startup-notify: %s serial %ld error_code %d request_code %d minor_code %d)\n",
-		         buf,
-		         ee->serial,
-		         ee->error_code,
-		         ee->request_code,
-		         ee->minor_code);
+		fprintf (stderr, "Another composite manager is already running\n");
+		exit (1);
 	}
 
 	if (ee->error_code == BadWindow
@@ -3414,7 +3581,8 @@ xerror(Display *dpy, XErrorEvent *ee)
 	        || (ee->request_code == X_ConfigureWindow && ee->error_code == BadMatch)
 	        || (ee->request_code == X_GrabButton && ee->error_code == BadAccess)
 	        || (ee->request_code == X_GrabKey && ee->error_code == BadAccess)
-	        || (ee->request_code == X_CopyArea && ee->error_code == BadDrawable))
+	        || (ee->request_code == X_CopyArea && ee->error_code == BadDrawable)
+	        || (ee->error_code - damage_error == BadDamage)) /* bad damage */
 		return 0;
 	fprintf(stderr, "dwm: fatal error: request code=%d, error code=%d\n",
 	        ee->request_code, ee->error_code);
@@ -3462,7 +3630,6 @@ main(int argc, char *argv[])
 	if (!(dpy = XOpenDisplay(NULL)))
 		die("dwm: cannot open display\n");
 	checkotherwm();
-	snDisplay = sn_display_new(dpy, error_trap_push, error_trap_pop);
 	setup();
 	scan();
 	run();
