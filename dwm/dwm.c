@@ -20,41 +20,9 @@
  *
  * To understand everything else, start reading main().
  */
-#include <assert.h>
-#include <errno.h>
-#include <locale.h>
-#include <stdarg.h>
-#include <signal.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <libgen.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <sys/wait.h>
-#include <math.h>
-#include <X11/cursorfont.h>
-#include <X11/keysym.h>
-#include <X11/Xatom.h>
-#include <X11/Xlib.h>
-#include <X11/Xproto.h>
-#include <X11/Xutil.h>
-#include <X11/XKBlib.h>
-#include <X11/Xft/Xft.h>
-#include <pango/pango.h>
-#include <pango/pangoxft.h>
-#ifdef XINERAMA
-#include <X11/extensions/Xinerama.h>
-#endif /* XINERAMA */
-
-#include <X11/extensions/Xcomposite.h>
-#include <X11/extensions/Xdamage.h>
-#include <X11/extensions/Xrender.h>
-#include <X11/extensions/shape.h>
-
 #include "dwm.h"
 #include "composite.h"
+#include "gradient.h"
 
 /* macros */
 #define BUTTONMASK              (ButtonPressMask|ButtonReleaseMask)
@@ -92,13 +60,6 @@
 #define VERSION_MINOR               0
 #define XEMBED_EMBEDDED_VERSION (VERSION_MAJOR << 16) | VERSION_MINOR
 
-/* enums */
-enum { CurNormal, CurResize, CurMove, CurLast };        /* cursor */
-enum { ColBorder, ColFG, ColBG, ColBorderFloat, ColTaskFG, ColTaskBG, ColUrgBorder, ColLast }; /* color */
-enum { ClkTagBar, ClkLtSymbol, ClkStatusText, ClkWinTitle,
-       ClkClientWin, ClkRootWin, ClkLast
-     };             /* clicks */
-
 typedef union
 {
 	int i;
@@ -134,33 +95,6 @@ struct Client
 	Monitor *mon;
 	Window win;
 };
-
-typedef struct
-{
-	int x, y, w, h;
-	int tagsw;
-	int systrayw;
-	int statusw;
-	unsigned long urg[ColLast];
-	unsigned long norm[ColLast];
-	unsigned long sel[ColLast];
-	Drawable drawable;
-	GC gc;
-	struct
-	{
-		XftColor urg[ColLast];
-		XftColor norm[ColLast];
-		XftColor sel[ColLast];
-		XftDraw *drawable;
-	} xft;
-	struct
-	{
-		int ascent;
-		int descent;
-		int height;
-		PangoLayout *layout;
-	} font;
-} DC; /* draw context */
 
 typedef struct
 {
@@ -367,7 +301,7 @@ static Atom wmatom[WMLast], netatom[NetLast], xatom[XLast];
 static Bool running = True;
 static Cursor cursor[CurLast];
 Display *dpy;
-static DC dc;
+DC dc;
 static Monitor *mons = NULL, *selmon = NULL;
 Window root;
 static int globalborder ;
@@ -1020,23 +954,6 @@ drawbar(Monitor *m)
 	m->visclients = n;
 	dc.x = 0;
 	dc.tagsw = drawtags (m);
-	/*
-	for (i = 0; i < LENGTH(tags); i++)
-	{
-	    dc.w = TEXTW(tags[i]);
-	    col = m->tagset[m->seltags] & 1 << i ? dc.sel : dc.norm;
-	    dc.w = drawtext(tags[i], col, urg & 1 << i, False, m);
-	    drawsquare(m == selmon && selmon->sel && selmon->sel->tags & 1 << i,
-	               occ & 1 << i, urg & 1 << i, col);
-	    dc.x += dc.w;
-	}
-	*/
-	//dc.w = blw = TEXTW(m->ltsymbol);
-	/*
-	dc.w = blw = drawtext(m->ltsymbol, dc.norm, False, False, m);
-	dc.x += dc.w;
-	dc.tagsw += dc.w;
-	*/
 	if (m == selmon)
 	{
 		if (showsystray)
@@ -1065,105 +982,11 @@ drawbar(Monitor *m)
 				dc.w = drawtitle(c->name, col, True, m, c == firstvis ? True : False);
 			}
 			else
-			{
+			{			
 				dc.w = drawtitle(c->name, col, False, m, c == firstvis ? True : False);
 			}
 		}
 	}
-	/*
-	if (m == selmon && 1 != 1)  status is only drawn on selected monitor
-	{
-	    dc.w = TEXTW(stext);
-	    dc.x = m->ww - dc.w;
-	    if (showsystray && m == selmon)
-	    {
-	        dc.x -= getsystraywidth();
-	    }
-	    if (dc.x < x)
-	    {
-	        dc.x = x;
-	        dc.w = m->ww - x;
-	    }
-	    m->titlebarend = dc.x;
-	    drawtext(stext, dc.norm, False, False, m);
-	}
-	else
-	{
-	    dc.x = m->ww;
-	    m->titlebarbegin = dc.x;
-	}
-
-	for (c = m->clients; c && !ISVISIBLE(c); c = c->next);
-	firstvis = c;
-
-	col = m == selmon ? dc.sel : dc.norm;
-	dc.w = dc.x - x;
-	dc.x = x;
-
-	if (n > 0)
-	{
-	    mw = dc.w / n;
-	    extra = 0;
-	    seldc = dc;
-	    i = 0;
-
-	    while (c)
-	    {
-	        lastvis = c;
-	        //tw = TEXTW(c->name);
-	        if (tw < mw) extra += (mw - tw); else i++;
-	        for (c = c->next; c && !ISVISIBLE(c); c = c->next);
-	    }
-
-	    //if (i > 0) mw += extra / i;
-
-	    c = firstvis;
-	    x = dc.x;
-	}
-	m->titlebarbegin = dc.x;
-	while (dc.w > bh)
-	{
-	    if (c)
-	    {
-	        ow = dc.w;
-	        tw = TEXTW(c->name);
-	        dc.w = MIN(ow, tw);
-
-	        if (dc.w > mw) dc.w = mw;
-	        if (m->sel == c) seldc = dc;
-	        if (c == lastvis) dc.w = ow;
-
-	        if (c == m->sel)
-	        {
-	            dc.w = drawtitle(c->name, col, True, m);
-	        }
-	        else
-	        {
-	            dc.w = drawtitle(c->name, col, True, m);
-	        }
-
-	        //if (c != firstvis) drawline(col);
-	        drawsquare(c->isfixed, c->isfloating, False, col);
-
-	        dc.x += dc.w;
-	        dc.w = ow - dc.w;
-	        for (c = c->next; c && !ISVISIBLE(c); c = c->next);
-	    }
-	    else
-	    {
-	        dc.w = drawtext(NULL, dc.norm, False, False, m);
-	        break;
-	    }
-	}
-
-	if (m == selmon && m->sel && ISVISIBLE(m->sel))
-	{
-	    dc = seldc;
-	    dc.w = drawtext(m->sel->name, col, False, False, m);
-	    drawsquare(m->sel->isfixed, m->sel->isfloating, True, col);
-	}
-	*/
-
 	XCopyArea(dpy, dc.drawable, m->barwin, dc.gc, 0, 0, m->ww, bh, 0, 0);
 	XSync(dpy, False);
 }
@@ -1252,7 +1075,7 @@ drawtitle (const char *text, unsigned long col[ColLast], Bool highlight, Monitor
 	h = (int) round(r.height / PANGO_SCALE);
 	y = dc.y + (dc.h / 2) - (h / 2);
 	x = dc.x + (h / 2);
-	XFillRectangle(dpy, dc.drawable, dc.gc, dc.x, dc.y, maxwidth, dc.h);
+	//XFillRectangle(dpy, dc.drawable, dc.gc, dc.x, dc.y, maxwidth, dc.h);
 
 	if (highlight)
 	{
@@ -1452,8 +1275,9 @@ expose(XEvent *e)
 			n_expose = 0;
 		}
 	}
-	if (ev->count == 0 && (m = wintomon(ev->window)))
+	if (ev->count == 0 && (m = wintomon(ev->window))) {
 		drawbar(m);
+	}
 }
 
 void
@@ -1976,6 +1800,7 @@ movemouse(const Arg *arg)
 	Client *c;
 	Monitor *m;
 	XEvent ev;
+	int count = 0;
 
 	if (!(c = selmon->sel))
 		return;
@@ -1984,6 +1809,8 @@ movemouse(const Arg *arg)
 	restack(selmon);
 	ocx = c->x;
 	ocy = c->y;
+
+
 	if (XGrabPointer(dpy, root, False, MOUSEMASK, GrabModeAsync, GrabModeAsync,
 	                 None, cursor[CurMove], CurrentTime) != GrabSuccess)
 		return;
@@ -2017,10 +1844,22 @@ movemouse(const Arg *arg)
 				        && (abs(nx - c->x) > snap || abs(ny - c->y) > snap))
 					togglefloating(NULL);
 			}
-			if (!selmon->lt[selmon->sellt]->arrange || c->isfloating)
+			if (!selmon->lt[selmon->sellt]->arrange || c->isfloating) {
 				resize(c, nx, ny, c->w, c->h, True);
+			}
+			if (enableComposite) {
+				win *w = find_win (dpy, c->win);
+				if (w) {
+					w->a.x = nx;
+					w->a.y = ny;
+					w->a.height = c->h;
+					w->a.width = c->w;
+					clipChanged = True;
+					paint_all (dpy, None);
+				}
+			}
 			break;
-		}
+		} 
 	}
 	while (ev.type != ButtonRelease);
 	XUngrabPointer(dpy, CurrentTime);
@@ -2230,6 +2069,17 @@ resizemouse(const Arg *arg)
 			}
 			if (!selmon->lt[selmon->sellt]->arrange || c->isfloating)
 				resize(c, c->x, c->y, nw, nh, True);
+			if (enableComposite) {
+				win *w = find_win (dpy, c->win);
+	                        if (w) {
+        	                        w->a.x = c->x;
+                	                w->a.y = c->y;
+                        	        w->a.height =nh;
+                                	w->a.width = nw;
+	                                clipChanged = True;
+        	                        paint_all (dpy, None);
+                	        }
+			}
 			break;
 		}
 	}
@@ -2354,36 +2204,7 @@ run(void)
 					fprintf (stderr, "circulatenotify\n");
 					circulate_win (dpy, &ev.xcirculate);
 					break;
-				case Expose: /*
-                    if (ev.xexpose.window == root)
-                    {
-                        int more = ev.xexpose.count + 1;
-                        if (n_expose == size_expose)
-                        {
-                            if (expose_rects)
-                            {
-                                expose_rects = realloc (expose_rects,
-                                                        (size_expose + more) *
-                                                        sizeof (XRectangle));
-                                size_expose += more;
-                            }
-                            else
-                            {
-                                expose_rects = malloc (more * sizeof (XRectangle));
-                                size_expose = more;
-                            }
-                        }
-                        expose_rects[n_expose].x = ev.xexpose.x;
-                        expose_rects[n_expose].y = ev.xexpose.y;
-                        expose_rects[n_expose].width = ev.xexpose.width;
-                        expose_rects[n_expose].height = ev.xexpose.height;
-                        n_expose++;
-                        if (ev.xexpose.count == 0)
-                        {
-                            expose_root (dpy, root, expose_rects, n_expose);
-                            n_expose = 0;
-                        }
-                    }*/
+				case Expose: 
 					handler[ev.type](&ev);
 					break;
 				case PropertyNotify:
@@ -2716,10 +2537,10 @@ setup(void)
 	dc.sel[ColBorder] = getcolor(selbordercolor, dc.xft.sel + ColBorder);
 	dc.sel[ColBG] = getcolor(selbgcolor, dc.xft.sel + ColBG);
 	dc.sel[ColFG] = getcolor(selfgcolor, dc.xft.sel + ColFG);
-	dc.sel[ColTaskFG] = getcolor(taskfg, dc.xft.sel + ColTaskFG);
-	dc.sel[ColTaskBG] = getcolor(taskbg, dc.xft.sel + ColTaskBG);
-	dc.sel[ColTaskFG] = getcolor(taskfg, dc.xft.norm + ColTaskFG);
-	dc.sel[ColTaskBG] = getcolor(taskbg, dc.xft.norm + ColTaskBG);
+	dc.sel[ColTaskFG] = getcolor(taskselfg, dc.xft.sel + ColTaskFG);
+	dc.sel[ColTaskBG] = getcolor(taskselbg, dc.xft.sel + ColTaskBG);
+	dc.norm[ColTaskFG] = getcolor(tasknormfg, dc.xft.norm + ColTaskFG);
+	dc.norm[ColTaskBG] = getcolor(tasknormbg, dc.xft.norm + ColTaskBG);
 	dc.norm[ColBorderFloat] = getcolor(floatnormbordercolor, dc.xft.norm + ColBorderFloat);
 	dc.sel[ColBorderFloat] = getcolor(floatselbordercolor, dc.xft.sel + ColBorderFloat);
 	dc.urg[ColBorder] = getcolor(urgbordercolor, dc.xft.urg + ColUrgBorder);
@@ -3087,11 +2908,14 @@ updatebars(void)
 {
 	unsigned int w;
 	Monitor *m;
+	Pixmap pmap;
+
+        pmap = getGradPixmap(dpy, 1, 22, "#222222");
 
 	XSetWindowAttributes wa =
 	{
 		.override_redirect = True,
-		.background_pixmap = ParentRelative,
+		.background_pixmap = pmap,
 		.event_mask = ButtonPressMask | ExposureMask
 	};
 	for (m = mons; m; m = m->next)
@@ -3586,6 +3410,7 @@ xerror(Display *dpy, XErrorEvent *ee)
 		return 0;
 	fprintf(stderr, "dwm: fatal error: request code=%d, error code=%d\n",
 	        ee->request_code, ee->error_code);
+	return 0;
 	return xerrorxlib(dpy, ee); /* may call exit */
 }
 

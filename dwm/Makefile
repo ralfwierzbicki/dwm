@@ -3,7 +3,7 @@
 
 include config.mk
 
-SRC = dwm.c composite.c
+SRC = dwm.c composite.c gradient.c
 OBJ = ${SRC:.c=.o}
 
 all: options dwm

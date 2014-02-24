@@ -18,6 +18,8 @@
 #include "dwm.h"
 #include "composite.h"
 
+#define __USE_GNU
+
 extern Window root;
 extern Display *dpy;
 

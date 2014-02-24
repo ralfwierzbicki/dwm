@@ -4,23 +4,26 @@
 
 /* appearance */
 static const char font[]            = "Terminus (TTF) 12";
-static const char normbordercolor[] = "#444444";
+static const char normbordercolor[] = "#222222";
 static const char normbgcolor[]     = "#222222";
 static const char normfgcolor[]     = "#bbbbbb";
-static const char selbordercolor[]  = "#005577";
-static const char selbgcolor[]      = "#130a4f";
-static const char selfgcolor[]      = "#eeeeee";
-static const char floatnormbordercolor[] = "#005577";
-static const char floatselbordercolor[]  = "#0687BA";
-static const char taskfg[] = "#eeeeee";
-static const char taskbg[]  = "#130a4f";
+static const char selbordercolor[]  = "#600000";
+static const char selbgcolor[]      = "#222222";
+static const char selfgcolor[]      = "#8ebe27";
+static const char floatnormbordercolor[] = "#222222";
+static const char floatselbordercolor[]  = "#600000";
+static const char taskselfg[] = "#8ebe27";
+static const char taskselbg[]  = "#222222";
+static const char tasknormfg[] = "#666666";
+static const char tasknormbg[]  = "#222222";
+
 static const char urgbordercolor[]  = "#ff0000";
 static const unsigned int borderpx  = 1;        /* border pixel of windows */
 static const unsigned int snap      = 32;       /* snap pixel */
 static const unsigned int systrayspacing = 2;   /* systray spacing */
 static const unsigned int gappx     = 3;        /* gap pixel between windows */
 static const unsigned int barheight = 22;	/* bar height in pixels */
-static const Bool showsystray       = False;    /* False means no systray */
+static const Bool showsystray       = True;    /* False means no systray */
 static const Bool showbar           = True;     /* False means no bar */
 static const Bool topbar            = True;     /* False means bottom bar */
 static const Bool statusmarkup      = True;     /* True means use pango markup in status message */
