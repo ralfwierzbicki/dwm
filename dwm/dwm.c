@@ -548,7 +548,7 @@ buttonpress(XEvent *e)
 			XAllowEvents(dpy, ReplayPointer, ev->time);
 			if (c->isfloating || !c->mon->lt[c->mon->sellt]->arrange)
 			{
-				XRaiseWindow(dpy, c->win);
+				//XRaiseWindow(dpy, c->win);
 			}
 			focus (c);
 			restack (selmon);
@@ -1713,8 +1713,10 @@ manage(Window w, XWindowAttributes *wa)
 	grabbuttons(c, False);
 	if (!c->isfloating)
 		c->isfloating = c->oldstate = trans != None || c->isfixed;
+	/*
 	if (c->isfloating)
 		XRaiseWindow(dpy, c->win);
+	*/
 	if (c->isfloating)
 		XSetWindowBorder(dpy, w, dc.norm[ColBorderFloat]);
 	attachabove(c);
@@ -2120,8 +2122,10 @@ restack(Monitor *m)
 	if (!m->sel)
 		return;
 
+	/*
 	if (m->sel->isfloating || !m->lt[m->sellt]->arrange)
 		XRaiseWindow(dpy, m->sel->win);
+	*/
 	if (m->lt[m->sellt]->arrange)
 	{
 		wc.stack_mode = Below;

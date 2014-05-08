@@ -3,7 +3,7 @@
 #include <X11/XF86keysym.h>
 
 /* appearance */
-static const char font[]            = "Terminus (TTF) 12";
+static const char font[]            = "Terminus 12";
 static const char normbordercolor[] = "#222222";
 static const char normbgcolor[]     = "#222222";
 static const char normfgcolor[]     = "#bbbbbb";
@@ -27,7 +27,7 @@ static const Bool showsystray       = True;    /* False means no systray */
 static const Bool showbar           = True;     /* False means no bar */
 static const Bool topbar            = True;     /* False means bottom bar */
 static const Bool statusmarkup      = True;     /* True means use pango markup in status message */
-static const Bool enableComposite   = True;
+static const Bool enableComposite   = False;
 static const unsigned int bargap    = 10;
 static const char *volumedown[] = { "amixer", "-q", "set", "Master", "2%-", "unmute", NULL };
 static const char *volumeup[]   = { "amixer", "-q", "set", "Master", "2%+", "unmute", NULL };
@@ -85,7 +85,7 @@ static const Layout layouts[] = {
 
 /* commands */
 static const char *dmenucmd[] = { "dmenu_run", "-fn", font, "-nb", normbgcolor, "-nf", normfgcolor, "-sb", selbgcolor, "-sf", selfgcolor, "-hist", "/home/ralf/.dmenu_history", NULL };
-static const char *termcmd[]  = { "gnome-terminal", NULL };
+static const char *termcmd[]  = { "mate-terminal", NULL };
 //static const char *quitcmd[]  = { "gnome-session-quit", "--logout", NULL };
 static const char *deskmenu[] = { "compiz-boxmenu", NULL };
 
