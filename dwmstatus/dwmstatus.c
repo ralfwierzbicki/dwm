@@ -295,7 +295,7 @@ main(void)
 		cpu = cpu_usage ();
 		rx = rx_rate ("wlp7s2", 100);
 
-		status = smprintf("%s [<span font=\"DejaVu Sans Mono 4\" color=\"#ffb300\">%s</span>] %s", rx, cpu, tm);
+		status = smprintf("%s [<span font=\"DejaVu Sans Mono 4\" color=\"#8ebe27\">%s</span>] %s", rx, cpu, tm);
 		setstatus(status);
 		//free(avgs);
 		free(cpu);

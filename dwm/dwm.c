@@ -548,7 +548,7 @@ buttonpress(XEvent *e)
 			XAllowEvents(dpy, ReplayPointer, ev->time);
 			if (c->isfloating || !c->mon->lt[c->mon->sellt]->arrange)
 			{
-				XRaiseWindow(dpy, c->win);
+				//XRaiseWindow(dpy, c->win);
 			}
 			focus (c);
 			restack (selmon);
@@ -1714,8 +1714,10 @@ manage(Window w, XWindowAttributes *wa)
 	if (!c->isfloating)
 		c->isfloating = c->oldstate = trans != None || c->isfixed;
 
+	/*
 	if (c->isfloating)
 		XRaiseWindow(dpy, c->win);
+	*/
 
 	if (c->isfloating)
 		XSetWindowBorder(dpy, w, dc.norm[ColBorderFloat]);
