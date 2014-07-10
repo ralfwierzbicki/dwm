@@ -982,7 +982,7 @@ drawbar(Monitor *m)
 				dc.w = drawtitle(c->name, col, True, m, c == firstvis ? True : False);
 			}
 			else
-			{			
+			{
 				dc.w = drawtitle(c->name, col, False, m, c == firstvis ? True : False);
 			}
 		}
@@ -1713,8 +1713,10 @@ manage(Window w, XWindowAttributes *wa)
 	grabbuttons(c, False);
 	if (!c->isfloating)
 		c->isfloating = c->oldstate = trans != None || c->isfixed;
+
 	if (c->isfloating)
 		XRaiseWindow(dpy, c->win);
+
 	if (c->isfloating)
 		XSetWindowBorder(dpy, w, dc.norm[ColBorderFloat]);
 	attachabove(c);
@@ -1859,7 +1861,7 @@ movemouse(const Arg *arg)
 				}
 			}
 			break;
-		} 
+		}
 	}
 	while (ev.type != ButtonRelease);
 	XUngrabPointer(dpy, CurrentTime);
@@ -2120,8 +2122,10 @@ restack(Monitor *m)
 	if (!m->sel)
 		return;
 
+	/*
 	if (m->sel->isfloating || !m->lt[m->sellt]->arrange)
 		XRaiseWindow(dpy, m->sel->win);
+	*/
 	if (m->lt[m->sellt]->arrange)
 	{
 		wc.stack_mode = Below;
@@ -2204,7 +2208,7 @@ run(void)
 					fprintf (stderr, "circulatenotify\n");
 					circulate_win (dpy, &ev.xcirculate);
 					break;
-				case Expose: 
+				case Expose:
 					handler[ev.type](&ev);
 					break;
 				case PropertyNotify:

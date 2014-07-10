@@ -293,7 +293,7 @@ main(void)
 		//avgs = loadavg();
 		tm = mktimes("%a %d %b %H:%M %Y", tz);
 		cpu = cpu_usage ();
-		rx = rx_rate ("enp5s0", 100);
+		rx = rx_rate ("wlp7s2", 100);
 
 		status = smprintf("%s [<span font=\"DejaVu Sans Mono 4\" color=\"#ffb300\">%s</span>] %s", rx, cpu, tm);
 		setstatus(status);
