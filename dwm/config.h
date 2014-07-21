@@ -3,15 +3,15 @@
 #include <X11/XF86keysym.h>
 
 /* appearance */
-static const char font[]            = "snap 8";
+static const char font[]            = "Ohsnap.Icons 8";
 static const char normbordercolor[] = "#222222";
 static const char normbgcolor[]     = "#222222";
 static const char normfgcolor[]     = "#bbbbbb";
-static const char selbordercolor[]  = "#600000";
+static const char selbordercolor[]  = "#488EF9";
 static const char selbgcolor[]      = "#222222";
 static const char selfgcolor[]      = "#8ebe27";
 static const char floatnormbordercolor[] = "#222222";
-static const char floatselbordercolor[]  = "#600000";
+static const char floatselbordercolor[]  = "#488EF9";
 static const char taskselfg[] = "#8ebe27";
 static const char taskselbg[]  = "#222222";
 static const char tasknormfg[] = "#666666";
@@ -49,8 +49,8 @@ static const char *tags[] = {
 static const Rule rules[] = {
 	/* class      instance    title       tags mask     isfloating   monitor 	role*/
 	{ "Gimp",     NULL,       NULL,       0,            True,        -1,	NULL },
-	{ "Bottom Expanded Edge Panel", NULL, NULL, 0, True, -1, NULL },
-	{ "ck2",      NULL,       NULL,       0,            True,        -1,	NULL },
+	{ "ck2",      NULL,       NULL,       1 << 1,            True,        -1,	NULL },
+	{ "eu4",      NULL,       NULL,       1 << 1,            True,        -1,    NULL },
 	{ NULL,       NULL,       "File Operation Progress",0,True,      -1,    NULL },
 	{ "Transmission-gtk",NULL,NULL,       0,            True,        -1,    NULL },
 	{ NULL,       NULL,       NULL,       0,            True,        -1,    "compose" },
@@ -58,6 +58,10 @@ static const Rule rules[] = {
 	{ NULL,       NULL,       NULL,       0,            True,        -1,    "about" },
 	{ NULL,       NULL,       NULL,       0,            True,        -1,    "epiphany-preferences" },
 	{ NULL,       NULL,       NULL,       0,            True,        -1,    "epiphany-cookie-manager" },
+	{ "Steam",    NULL,       NULL,       1 << 1,       True,        -1,    NULL },
+	{ "Firefox",  NULL,       NULL,       1 << 2,       False,       -1,    NULL },
+	{ "Thunderbird", NULL,    NULL,       0 << 2,       False,       -1,    NULL },
+	{ "Skype",    NULL,       NULL,       0,            True,        -1,    NULL }
 };
 
 /* layout(s) */

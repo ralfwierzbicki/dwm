@@ -100,7 +100,7 @@ rx_rate (const char *iface, int cap)
 	const char arrdown[] = "\342\206\223";
 	int i = 0;
 	char *bar;
-	const char markup[] = "\342\206\223kb/s %4.0f [<span font=\"DejaVu Sans Mono 4\" color=\"#ff0000\">%s</span>]\342\206\223";
+	const char markup[] = "kb/s %4.0f Û [<span font=\"DejaVu Sans Mono 4\" color=\"#ff0000\">%s</span>]Ú";
 
 	bar = (char *) malloc (100);
 	memset (bar, 0, 100);

@@ -548,7 +548,7 @@ buttonpress(XEvent *e)
 			XAllowEvents(dpy, ReplayPointer, ev->time);
 			if (c->isfloating || !c->mon->lt[c->mon->sellt]->arrange)
 			{
-				//XRaiseWindow(dpy, c->win);
+				XRaiseWindow(dpy, c->win);
 			}
 			focus (c);
 			restack (selmon);

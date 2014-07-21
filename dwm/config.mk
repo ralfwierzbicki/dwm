@@ -21,7 +21,7 @@ LIBS = -L/usr/lib -lc -lm -L${X11LIB} -lX11 ${XINERAMALIBS} `pkg-config --libs x
 # flags
 CPPFLAGS = -DVERSION=\"${VERSION}\" ${XINERAMAFLAGS}
 #CFLAGS = -DDEBUG -D__USE_XOPEN -DSN_API_NOT_YET_FROZEN=1 -g -Wall -O0 ${INCS} ${CPPFLAGS}
-CFLAGS = -DSN_API_NOT_YET_FROZEN=1 -std=c99 -O2 -pipe -mtune=native -march=native -fomit-frame-pointer -flto=4 -fuse-linker-plugin -pedantic -Wall -Os ${INCS} ${CPPFLAGS}
+CFLAGS = -DSN_API_NOT_YET_FROZEN=1 -std=c99 -O2 -pipe -mavx -fomit-frame-pointer -ipo -pedantic -Wall ${INCS} ${CPPFLAGS}
 #LDFLAGS = -g ${LIBS}
 LDFLAGS = -s ${LIBS} -Wl,--as-needed -Wl,-O1 -Wl,--hash-style=gnu -Wl,--sort-common ${CFLAGS}
 
@@ -30,4 +30,4 @@ LDFLAGS = -s ${LIBS} -Wl,--as-needed -Wl,-O1 -Wl,--hash-style=gnu -Wl,--sort-com
 #LDFLAGS = ${LIBS}
 
 # compiler and linker
-CC = cc
+CC = icc
