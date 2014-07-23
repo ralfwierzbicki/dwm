@@ -2124,10 +2124,10 @@ restack(Monitor *m)
 	if (!m->sel)
 		return;
 
-	/*
+	
 	if (m->sel->isfloating || !m->lt[m->sellt]->arrange)
 		XRaiseWindow(dpy, m->sel->win);
-	*/
+	
 	if (m->lt[m->sellt]->arrange)
 	{
 		wc.stack_mode = Below;
