@@ -542,16 +542,21 @@ buttonpress(XEvent *e)
 		if (ev->state & MODKEY)
 		{
 			XAllowEvents(dpy, AsyncPointer, ev->time);
+			XRaiseWindow(dpy, c->win);
 		}
 		else
 		{
 			XAllowEvents(dpy, ReplayPointer, ev->time);
-			if (c->isfloating || !c->mon->lt[c->mon->sellt]->arrange)
+			if (ev->subwindow == None && (
+				c->isfloating || !c->mon->lt[c->mon->sellt]->arrange)
+			)
 			{
 				XRaiseWindow(dpy, c->win);
+			} else if (ev->subwindow != None) {
+				XRaiseWindow (dpy, ev->subwindow);
 			}
-			focus (c);
-			restack (selmon);
+			//focus (c);
+			//restack (selmon);
 			XFlush (dpy);
 		}
 		click = ClkClientWin;
@@ -1413,8 +1418,12 @@ focusstack(const Arg *arg)
 	}
 	if (c)
 	{
-		focus(c);
-		restack(selmon);
+		if (c->isfloating ||
+		    !selmon->sel->mon->lt[selmon->sel->mon->sellt]->arrange)
+			XRaiseWindow (dpy, c->win);
+
+		//focus(c);
+		//restack(selmon);
 	}
 }
 
@@ -2124,8 +2133,7 @@ restack(Monitor *m)
 	if (!m->sel)
 		return;
 
-	
-	if (m->sel->isfloating || !m->lt[m->sellt]->arrange)
+	if (m->sel->isfloating && !m->lt[m->sellt]->arrange)
 		XRaiseWindow(dpy, m->sel->win);
 	
 	if (m->lt[m->sellt]->arrange)
