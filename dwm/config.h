@@ -21,7 +21,7 @@ static const char urgbordercolor[]  = "#ff0000";
 static const unsigned int borderpx  = 1;        /* border pixel of windows */
 static const unsigned int snap      = 32;       /* snap pixel */
 static const unsigned int systrayspacing = 2;   /* systray spacing */
-static const unsigned int gappx     = 3;        /* gap pixel between windows */
+static const unsigned int gappx     = 0;        /* gap pixel between windows */
 static const unsigned int barheight = 22;	/* bar height in pixels */
 static const Bool showsystray       = True;    /* False means no systray */
 static const Bool showbar           = True;     /* False means no bar */
@@ -60,7 +60,7 @@ static const Rule rules[] = {
 	{ NULL,       NULL,       NULL,       0,            True,        -1,    "epiphany-cookie-manager" },
 	{ "Steam",    NULL,       NULL,       1 << 1,       True,        -1,    NULL },
 	{ "Firefox",  NULL,       NULL,       1 << 2,       False,       -1,    NULL },
-	{ "Thunderbird", NULL,    NULL,       0 << 2,       False,       -1,    NULL },
+	{ "Thunderbird", NULL,    NULL,       1 << 1,       False,       -1,    NULL },
 	{ "Skype",    NULL,       NULL,       0,            True,        -1,    NULL }
 };
 
@@ -96,13 +96,13 @@ static const char *deskmenu[] = { "compiz-boxmenu", NULL };
 
 static Key keys[] = {
 	/* modifier                     key        function        argument */
-	{ MODKEY,                       XK_p,      spawn,          {.v = dmenucmd } },
+	{ MODKEY,                       XK_d,      spawn,          {.v = dmenucmd } },
 	{ MODKEY|ShiftMask,             XK_Return, spawn,          {.v = termcmd } },
 	{ MODKEY,                       XK_b,      togglebar,      {0} },
 	{ MODKEY,                       XK_Tab,      focusstack,     {.i = +1 } },
 	{ MODKEY,                       XK_k,      focusstack,     {.i = -1 } },
 	{ MODKEY,                       XK_i,      incnmaster,     {.i = +1 } },
-	{ MODKEY,                       XK_d,      incnmaster,     {.i = -1 } },
+	{ MODKEY,                       XK_p,      incnmaster,     {.i = -1 } },
 	{ MODKEY,                       XK_Left,   setmfact,       {.f = -0.05} },
 	{ MODKEY,                       XK_Right,  setmfact,       {.f = +0.05} },
 	{ MODKEY,                       XK_Return, zoom,           {0} },
@@ -133,7 +133,7 @@ static Key keys[] = {
 	TAGKEYS(                        XK_8,                      7)
 	TAGKEYS(                        XK_9,                      8)
 	{
-		MODKEY,		        XK_q,      quit,           {0}
+	MODKEY,		        XK_q,      quit,           {0}
 	},
 };
 

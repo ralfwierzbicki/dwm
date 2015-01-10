@@ -176,6 +176,76 @@ cpu_usage ()
 }
 
 char *
+core_temp () {
+	FILE *fp = NULL;
+	int temp2;
+	int temp3;
+	int temp4;
+	int temp5;
+	char *ret;
+	const char red[] = "red";
+	const char yellow[] = "yellow";
+	const char green[] = "green";
+	const char markup[] = "<span color=\"%s\">%dC</span> <span color=\"%s\">%dC</span> <span color=\"%s\">%dC</span> <span color=\"%s\">%dC</span>";
+	char *temp2_color;
+        char *temp3_color;
+        char *temp4_color;
+        char *temp5_color;
+
+	
+	ret = (char *) malloc (21 * sizeof (char) + strlen (markup) * sizeof (char));
+	fp = fopen ("/sys/bus/platform/drivers/coretemp/coretemp.0/hwmon/hwmon2/temp2_input", "r");
+	fscanf (fp, "%d", &temp2);
+	temp2 = temp2 / 1000;
+	if (temp2 < 40) {
+		temp2_color = green;
+	} else if (temp2 >= 40 && temp2 < 50) {
+		temp2_color = yellow;
+	} else {
+		temp2_color = red;
+	}
+	fclose (fp);
+
+        fp = fopen ("/sys/bus/platform/drivers/coretemp/coretemp.0/hwmon/hwmon2/temp3_input", "r");
+        fscanf (fp, "%d", &temp3);
+        temp3 = temp3 / 1000;
+        if (temp3 < 40) {
+                temp3_color = green;
+        } else if (temp3 >= 40 && temp3 < 50) {
+                temp3_color = yellow;
+        } else {
+                temp3_color = red;
+        }
+	fclose (fp);
+
+        fp = fopen ("/sys/bus/platform/drivers/coretemp/coretemp.0/hwmon/hwmon2/temp4_input", "r");
+        fscanf (fp, "%d", &temp4);
+        temp4 = temp4 / 1000;
+        if (temp4 < 40) {
+                temp4_color = green;
+        } else if (temp4 >= 40 && temp4 < 50) {
+                temp4_color = yellow;
+        } else {
+                temp4_color = red;
+        }
+	fclose (fp);
+
+        fp = fopen ("/sys/bus/platform/drivers/coretemp/coretemp.0/hwmon/hwmon2/temp5_input", "r");
+        fscanf (fp, "%d", &temp5);
+        temp5 = temp5 / 1000;
+        if (temp5 < 40) {
+                temp5_color = green;
+        } else if (temp5 >= 40 && temp5 < 50) {
+                temp5_color = yellow;
+        } else {
+                temp5_color = red;
+        }
+	fclose (fp);
+	sprintf (ret, markup, temp2_color,  temp2, temp3_color, temp3, temp4_color, temp4, temp5_color, temp5);
+	return ret;
+}
+
+char *
 smprintf(char *fmt, ...)
 {
 	va_list fmtargs;
@@ -261,6 +331,7 @@ main(void)
 	char *tm;
 	char *cpu;
 	char *rx;
+	char *temp2;
 
 	setlocale(LC_ALL, "");
 
@@ -275,18 +346,18 @@ main(void)
 	     * between the version it was compiled for and the actual shared
 	     * library used.
 	     */
-	LIBXML_TEST_VERSION
+	/* LIBXML_TEST_VERSION*/
 
-	streamFile("http://weather.yahooapis.com/forecastrss?w=4125&u=c");
+	/*streamFile("http://weather.yahooapis.com/forecastrss?w=4125&u=c");*/
 
 	/*
 	 * Cleanup function for the XML library.
 	 */
-	xmlCleanupParser();
+	/*xmlCleanupParser();*/
 	/*
 	 * this is to debug memory for regression tests
 	 */
-	xmlMemoryDump();
+	/*xmlMemoryDump();*/
 
 	for (;; sleep(1))
 	{
@@ -294,13 +365,16 @@ main(void)
 		tm = mktimes("%a %d %b %H:%M %Y", tz);
 		cpu = cpu_usage ();
 		rx = rx_rate ("wlp7s2", 100);
+		temp2 = core_temp ();
 
-		status = smprintf("%s [<span font=\"DejaVu Sans Mono 4\" color=\"#8ebe27\">%s</span>] %s", rx, cpu, tm);
+
+		status = smprintf("[%s] %s [<span font=\"DejaVu Sans Mono 4\" color=\"#8ebe27\">%s</span>] %s", temp2, rx, cpu, tm);
 		setstatus(status);
 		//free(avgs);
 		free(cpu);
 		free(rx);
 		free(status);
+		free(temp2);
 	}
 
 	XCloseDisplay(dpy);

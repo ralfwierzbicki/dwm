@@ -5,6 +5,8 @@ else
 	PREFIX?=/usr
 endif
 
+CC=icc
+
 # checking for python
 PYTHONBIN?=$(shell which python$(shell pkg-config --modversion python-2.7 2> /dev/null))
 PYTHONBIN?=$(shell which python2.6)
@@ -21,7 +23,7 @@ WARNINGS := -Wall -Wextra -Wno-unused-parameter
 ifdef ($(DEBUG))
 	CFLAGS := -O2 -g $(WARNINGS)
 else
-	CFLAGS := $(WARNINGS)
+	CFLAGS := -O2 -mavx -ipo $(WARNINGS)
 endif
 LDFLAGS := `pkg-config --libs dbus-glib-1 gdk-2.0 gtk+-2.0 libwnck-1.0`
 LDFLAGS_CLIENT := `pkg-config --libs dbus-glib-1`

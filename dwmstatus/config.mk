@@ -16,7 +16,7 @@ LIBS = -L/usr/lib -lm -L${X11LIB} -lX11 `xml2-config --libs` `curl-config --libs
 
 # flags
 CPPFLAGS = -DVERSION=\"${VERSION}\"
-CFLAGS = -g -pedantic -Wall -O0 ${INCS} ${CPPFLAGS} `xml2-config --cflags` `curl-config --libs`
+CFLAGS = -pedantic -Wall -O2 -mtune=native ${INCS} ${CPPFLAGS} `xml2-config --cflags` `curl-config --libs`
 #CFLAGS = -std=c99 -pedantic -Wall -Os ${INCS} ${CPPFLAGS}
 LDFLAGS = -g ${LIBS}
 #LDFLAGS = -s ${LIBS}
@@ -26,5 +26,5 @@ LDFLAGS = -g ${LIBS}
 #LDFLAGS = ${LIBS}
 
 # compiler and linker
-CC = g++
+CC = gcc
 

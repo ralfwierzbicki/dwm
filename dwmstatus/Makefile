@@ -3,7 +3,7 @@
 include config.mk
 
 SRC = ${NAME}.c
-OBJ = ${SRC:.c=.o} weather.o
+OBJ = ${SRC:.c=.o}
 
 all: options ${NAME}
 
